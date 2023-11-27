@@ -2,5 +2,6 @@ gm-root-ca/
 gm-sub-ca/
 root-ca/
 servers/
+clients/
 sub-ca/
 ca/
