@@ -24,6 +24,7 @@ function usage
     echo "Usage: $0 [OPTIONS] <domain_name>"
     echo "Options:"
     echo "  -h, --help          Show help"
+    echo "  -d, --debug         Enable debug mode"
     echo "  -g, --gm            Enable gm"
     echo "  -s, --server        Server certificate, default is client"
     echo "  -b, --begin <DATE>  Begin date, default is now"
@@ -49,11 +50,11 @@ function exit_on_error
     conf=
 
     if [ -z "$conf_gm_enable" ]; then
-        ca=$g_sub_ca_dir
-        conf=sub-ca.conf
+        ca=$CERTM_SUB_CA_DIR
+        conf=ca.conf
     else
-        ca=$g_gm_sub_ca_dir
-        conf=gm-sub-ca.conf
+        ca=$CERTM_GM_SUB_CA_DIR
+        conf=ca.conf
     fi
 
     cd $ca
@@ -72,20 +73,31 @@ function gen_rsa
 {
     # gen key
 
-    $CERTM_OPENSSL genpkey -out $cert_dir/privkey.pem -algorithm RSA -pkeyopt rsa_keygen_bits:2048
+    $CERTM_OPENSSL genpkey -out $cert_dir/privkey.pem \
+                           -algorithm RSA \
+                           -pkeyopt rsa_keygen_bits:2048
     [ $? -eq 0 ] || exit_on_error 1
 
     # gen csr
 
-    $CERTM_OPENSSL req -new -config $cert_dir/csr.conf -key $cert_dir/privkey.pem -out $cert_dir/priv.csr
-    [ $? -eq 0 ] || exit_on_error 1
+    $CERTM_OPENSSL req -new \
+                       -config $cert_dir/csr.conf \
+                       -key $cert_dir/privkey.pem \
+                       -out $cert_dir/priv.csr \
+        || exit_on_error 1
 
     # gen cert
 
-    cd $g_sub_ca_dir
+    cd $CERTM_SUB_CA_DIR
 
-    $CERTM_OPENSSL ca -config sub-ca.conf $date_options -in $cert_dir/priv.csr -out $cert_dir/cert.pem -extensions server_ext -notext -passin pass:$conf_passwd
-    [ $? -ne 0 ] && cd - && exit_on_error 1
+    $CERTM_OPENSSL ca -config ca.conf \
+                      $date_options \
+                      -in $cert_dir/priv.csr \
+                      -out $cert_dir/cert.pem \
+                      -extensions server_ext \
+                      -notext \
+                      -passin pass:$conf_passwd \
+        || exit_on_error 1
 
     cd -
 
@@ -94,7 +106,7 @@ function gen_rsa
     cat $cert_dir/cert.pem >> $cert_dir/chain.pem
     [ $? -eq 0 ] || exit_on_error 1
 
-    cat $g_sub_ca_dir/sub-ca.pem.crt >> $cert_dir/chain.pem
+    cat $CERTM_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
     [ $? -eq 0 ] || exit_on_error 1
 }
 
@@ -102,44 +114,68 @@ function gen_gm
 {
     # gen key
 
-    $CERTM_OPENSSL ecparam -genkey -name SM2 -out $cert_dir/privkey.pem
-    [ $? -eq 0 ] || exit_on_error 1
+    $CERTM_OPENSSL ecparam -genkey \
+                           -name SM2 \
+                           -out $cert_dir/privkey.pem \
+        || exit_on_error 1
 
     # gen csr
 
-    $CERTM_OPENSSL req -new -config $cert_dir/csr.conf -key $cert_dir/privkey.pem -out $cert_dir/priv.csr
-    [ $? -eq 0 ] || exit_on_error 1
+    $CERTM_OPENSSL req -new \
+                       -config $cert_dir/csr.conf \
+                       -key $cert_dir/privkey.pem \
+                       -out $cert_dir/priv.csr \
+        || exit_on_error 1
 
     # gen cert
 
-    cd $g_gm_sub_ca_dir
+    cd $CERTM_GM_SUB_CA_DIR
 
-    $CERTM_OPENSSL ca -config gm-sub-ca.conf $date_options -in $cert_dir/priv.csr -out $cert_dir/cert.pem -extensions server_gm_ext -md sm3 -notext -passin pass:$conf_passwd
-    [ $? -ne 0 ] && cd - && exit_on_error 1
+    $CERTM_OPENSSL ca -config ca.conf \
+                      $date_options \
+                      -in $cert_dir/priv.csr \
+                      -out $cert_dir/cert.pem \
+                      -extensions server_gm_ext \
+                      -md sm3 \
+                      -notext \
+                      -passin pass:$conf_passwd \
+        || exit_on_error 1
 
     cd -
 
     # gen cert chain
 
     cat $cert_dir/cert.pem >> $cert_dir/chain.pem
-    cat $g_gm_sub_ca_dir/gm-sub-ca.pem.crt >> $cert_dir/chain.pem
+    cat $CERTM_GM_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
 
     # gen enc key
 
-    $CERTM_OPENSSL ecparam -genkey -name SM2 -out $cert_dir/enc-privkey.pem
-    [ $? -eq 0 ] || exit_on_error 1
+    $CERTM_OPENSSL ecparam -genkey \
+                           -name SM2 \
+                           -out $cert_dir/enc-privkey.pem \
+        || exit_on_error 1
 
     # gen enc csr
 
-    $CERTM_OPENSSL req -new -config $cert_dir/enc-csr.conf -key $cert_dir/enc-privkey.pem -out $cert_dir/enc-priv.csr
-    [ $? -eq 0 ] || exit_on_error 1
+    $CERTM_OPENSSL req -new \
+                       -config $cert_dir/enc-csr.conf \
+                       -key $cert_dir/enc-privkey.pem \
+                       -out $cert_dir/enc-priv.csr \
+        || exit_on_error 1
 
     # gen enc cert
 
-    cd $g_gm_sub_ca_dir
+    cd $CERTM_GM_SUB_CA_DIR
 
-    $CERTM_OPENSSL ca -config gm-sub-ca.conf $date_options -in $cert_dir/enc-priv.csr -out $cert_dir/enc-cert.pem -extensions server_gm_enc_ext -md sm3 -notext -passin pass:$conf_passwd
-    [ $? -ne 0 ] && cd - && exit_on_error 1
+    $CERTM_OPENSSL ca -config ca.conf \
+                      $date_options \
+                      -in $cert_dir/enc-priv.csr \
+                      -out $cert_dir/enc-cert.pem \
+                      -extensions server_gm_enc_ext \
+                      -md sm3 \
+                      -notext \
+                      -passin pass:$conf_passwd \
+        || exit_on_error 1
 
     cd -
 
@@ -148,7 +184,7 @@ function gen_gm
     cat $cert_dir/enc-cert.pem >> $cert_dir/enc-chain.pem
     [ $? -eq 0 ] || exit_on_error 1
 
-    cat $g_gm_sub_ca_dir/gm-sub-ca.pem.crt >> $cert_dir/chain.pem
+    cat $CERTM_GM_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
     [ $? -eq 0 ] || exit_on_error 1
 }
 
@@ -167,6 +203,9 @@ do
     case $1 in
         -h|--help)
             usage
+            ;;
+        -d|--debug)
+            set -x
             ;;
         -g|--gm)
             conf_gm_enable=1
@@ -190,12 +229,12 @@ do
     shift
 done
 
-dn=$conf_domain_name.$conf_domain_suffix
+dn=$conf_domain_name.$g_conf_domain_suffix
 
 if [ "$conf_type" == "servers" ]; then
-    cert_dir=$g_server_dir/$dn/$conf_cert_type
+    cert_dir=$CERTM_SERVER_DIR/$dn/$conf_cert_type
 else
-    cert_dir=$g_client_dir/$dn/$conf_cert_type
+    cert_dir=$CERTM_CLIENT_DIR/$dn/$conf_cert_type
 fi
 
 # mkdir directory
@@ -238,5 +277,3 @@ if [[ -z "$conf_gm_enable" ]]; then
 else
     gen_gm
 fi
-
-

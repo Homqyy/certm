@@ -15,7 +15,7 @@
 bin_dir=$( cd `dirname $0`; pwd )
 
 source $g_config_file
-source $g_root_dir/base_for_bash.func
+source $g_root_dir/tools-dev/base_for_bash.func
 
 root=$g_output_dir
 
@@ -23,9 +23,236 @@ conf_passwd=root
 
 ################## Functions ##################
 
+function init_ca
+{
+    ca_name=$1
+    ca_temp_conf=$2
+
+    [ -d $root/$ca_name ] && rm -rf $root/$ca_name
+
+    mkdir $root/$ca_name
+
+    cp $ca_temp_conf $root/$ca_name/ca.conf
+
+    sed -i "s/{{name}}/$g_conf_name/g" $root/$ca_name/ca.conf
+    sed -i "s/{{domain_suffix}}/$g_conf_domain_suffix/g" $root/$ca_name/ca.conf
+    sed -i "s/{{organization}}/$g_conf_organization/g" $root/$ca_name/ca.conf
+}
+
+function build_rsa_ca
+{
+    ca_dir=$1
+
+    cd $ca_dir
+
+    mkdir private
+    mkdir certs
+    mkdir db
+    touch db/index
+    touch db/serial
+    touch db/crlnumber
+    echo 01 > db/crlnumber
+
+    $g_openssl rand -hex 16 > db/serial
+
+    # gen root ca
+    $g_openssl req -new \
+                   -config ca.conf \
+                   -out ca.csr \
+                   -keyout private/ca.pem.key \
+                   -passout pass:$conf_passwd
+
+    $g_openssl ca -selfsign \
+                  -config ca.conf \
+                  -in ca.csr \
+                  -out ca.pem.crt \
+                  -extensions ca_ext \
+                  -passin pass:$conf_passwd \
+                  -notext \
+                  -batch
+
+    # gen ocsp csr
+    $g_openssl req -new \
+                   -newkey rsa:2048 \
+                   -subj "/C=CN/O=$g_conf_organization/CN=$g_conf_name OCSP Root Responder" \
+                   -keyout private/ocsp.pem.key \
+                   -out ocsp.csr \
+                   -passout pass:$conf_passwd
+
+    # gen ocsp crt
+    $g_openssl ca -config ca.conf \
+                  -in ocsp.csr \
+                  -out ocsp.pem.crt \
+                  -extensions ocsp_ext \
+                  -days 3650 \
+                  -passin pass:$conf_passwd \
+                  -notext \
+                  -batch
+}
+
+function build_rsa_sub_ca
+{
+    root_ca_dir=$1
+    ca_dir=$2
+
+    cd $ca_dir
+
+    mkdir private
+    mkdir certs
+    mkdir db
+    touch db/index
+    touch db/serial
+    touch db/crlnumber
+    echo 01 > db/crlnumber
+
+    $g_openssl rand -hex 16 > db/serial
+
+    # gen sub ca csr
+    $g_openssl req -new \
+                   -config ca.conf \
+                   -out ca.csr \
+                   -keyout private/ca.pem.key \
+                   -passout pass:$conf_passwd
+
+    # gen sub ca crt
+    cd $root_ca_dir
+    $g_openssl ca -config ca.conf \
+                  -in $ca_dir/ca.csr \
+                  -out $ca_dir/ca.pem.crt \
+                  -extensions sub_ca_ext \
+                  -passin pass:$conf_passwd \
+                  -notext \
+                  -batch
+    cd -
+
+    # gen ocsp csr
+    $g_openssl req -new \
+                   -newkey rsa:2048 \
+                   -subj "/C=CN/O=$g_conf_organization/CN=$g_conf_name OCSP Sub Responder" \
+                   -keyout private/ocsp.pem.key \
+                   -out ocsp.csr \
+                   -passout pass:$conf_passwd
+
+    # gen ocsp crt
+    $g_openssl ca -config ca.conf \
+                  -in ocsp.csr \
+                  -out ocsp.pem.crt \
+                  -extensions ocsp_ext \
+                  -days 3650 \
+                  -passin pass:$conf_passwd \
+                  -notext \
+                  -batch
+}
+
+function build_gm_ca
+{
+    ca_dir=$1
+
+    cd $ca_dir
+
+    mkdir private
+    mkdir certs
+    mkdir db
+    touch db/index
+    touch db/serial
+    touch db/crlnumber
+    echo 01 > db/crlnumber
+    $g_openssl rand -hex 16 > db/serial
+
+    # gen gm root key
+    $g_openssl ecparam -genkey \
+                       -name SM2 \
+                       -out private/ca.pem.key
+
+    # gen gm root csr
+    $g_openssl req -config ca.conf \
+        -key private/ca.pem.key \
+        -new \
+        -out ca.csr \
+        -passout pass:$conf_passwd
+
+    # gen gm root crt
+    $g_openssl x509 -sm3 -req \
+        -extfile ca.conf \
+        -in ca.csr \
+        -extensions ca_ext \
+        -signkey private/ca.pem.key \
+        -out ca.pem.crt \
+        -days 3650 \
+        -passin pass:$conf_passwd
+}
+
+function build_gm_sub_ca
+{
+    root_ca_dir=$1
+    ca_dir=$2
+
+    cd $ca_dir
+
+    mkdir private
+    mkdir certs
+    mkdir db
+    touch db/index
+    touch db/serial
+    touch db/crlnumber
+    echo 01 > db/crlnumber
+    $g_openssl rand -hex 16 > db/serial
+
+    # gen gm sub key
+    $g_openssl ecparam -genkey \
+                       -name SM2 \
+                       -out private/ca.pem.key
+
+    # gen sub ca csr
+    $g_openssl req -config ca.conf \
+                   -key private/ca.pem.key \
+                   -new \
+                   -out ca.csr \
+                   -passout pass:$conf_passwd
+
+    # gen sub ca crt
+    cd $root_ca_dir
+    $g_openssl ca -config ca.conf \
+                  -in $ca_dir/ca.csr \
+                  -out $ca_dir/ca.pem.crt \
+                  -extensions sub_ca_ext \
+                  -md sm3 \
+                  -passin pass:$conf_passwd \
+                  -notext \
+                  -batch
+    cd -
+
+    # gen gm ocsp key
+    $g_openssl ecparam -genkey \
+                       -name SM2 \
+                       -out private/ocsp.pem.key
+
+    # gen gm ocsp csr
+    $g_openssl req -new \
+        -subj "/C=CN/O=$g_conf_organization/CN=$g_conf_name OCSP GM Sub Responder" \
+        -key private/ocsp.pem.key \
+        -out ocsp.csr \
+        -passout pass:$conf_passwd
+
+    # gen gm ocsp crt
+    $g_openssl ca -config ca.conf \
+                  -in ocsp.csr \
+                  -out ocsp.pem.crt \
+                  -extensions ocsp_ext \
+                  -days 3650 \
+                  -md sm3 \
+                  -passin pass:$conf_passwd \
+                  -notext \
+                  -batch
+}
+
 ################## Main ##################
 
 # init
+
+[ -d $root ] && rm -rf $root
+
+mkdir $root
 
 d_redirect_to_file $g_log_file
 
@@ -33,130 +260,18 @@ g_ca_names="root-ca sub-ca gm-root-ca gm-sub-ca"
 
 for ca_name in $g_ca_names
 do
-    rm -rf $root/$ca_name
-    mkdir $root/$ca_name
-    cp $bin_dir/$ca_name.conf $root/$ca_name/$ca_name.conf
-    sed -i "s/{{name}}/$conf_name/g" $root/$ca_name/$ca_name.conf
-    sed -i "s/{{domain_suffix}}/$conf_domain_suffix/g" $root/$ca_name/$ca_name.conf
-    sed -i "s/{{organization}}/$conf_organization/g" $root/$ca_name/$ca_name.conf
+    init_ca $ca_name $bin_dir/$ca_name.conf
 done
 
-rm -rf $root/clients
-rm -rf  $root/servers
-mkdir $root/clients
-mkdir $root/servers
+# build rsa ca
 
-cd $root/root-ca
+build_rsa_ca $g_root_ca_dir
+build_rsa_sub_ca $g_root_ca_dir $g_sub_ca_dir
 
-mkdir private
-mkdir certs
-mkdir db
-touch db/index
-touch db/serial
-touch db/crlnumber
-echo 01 > db/crlnumber
-$g_openssl rand -hex 16 > db/serial
+# build gm ca
 
-# gen root ca
-$g_openssl req -new -config root-ca.conf -out root-ca.csr -keyout private/root-ca.pem.key -passout pass:$conf_passwd
-$g_openssl ca -selfsign -config root-ca.conf -in root-ca.csr -out root-ca.pem.crt -extensions ca_ext -notext -passin pass:$conf_passwd -batch
-
-# gen ocsp csr
-$g_openssl req -new -newkey rsa:2048 -subj "/C=CN/O=$conf_organization/CN=$conf_name OCSP Root Responder" -keyout private/root-ocsp.pem.key -out root-ocsp.csr -passout pass:$conf_passwd
-
-# gen ocsp crt
-$g_openssl ca -config root-ca.conf -in root-ocsp.csr -out root-ocsp.pem.crt -extensions ocsp_ext -days 3650 -notext -passin pass:$conf_passwd -batch
-
-cd $root/sub-ca
-
-mkdir private
-mkdir certs
-mkdir db
-touch db/index
-touch db/serial
-touch db/crlnumber
-echo 01 > db/crlnumber
-$g_openssl rand -hex 16 > db/serial
-
-# gen sub ca csr
-$g_openssl req -new -config sub-ca.conf -out sub-ca.csr -keyout private/sub-ca.pem.key -passout pass:$conf_passwd
-
-# gen sub ca crt
-cd $root/root-ca
-$g_openssl ca -config root-ca.conf -in ../sub-ca/sub-ca.csr -out ../sub-ca/sub-ca.pem.crt -extensions sub_ca_ext -notext -passin pass:$conf_passwd -batch
-cd $root/sub-ca
-
-# gen ocsp csr
-$g_openssl req -new -newkey rsa:2048 -subj "/C=CN/O=$conf_organization/CN=$conf_name OCSP Sub Responder" -keyout private/sub-ocsp.pem.key -out sub-ocsp.csr -passout pass:$conf_passwd
-
-# gen ocsp crt
-$g_openssl ca -config sub-ca.conf -in sub-ocsp.csr -out sub-ocsp.pem.crt -extensions ocsp_ext -days 3650 -notext -passin pass:$conf_passwd -batch
-
-cd $root/gm-root-ca
-
-mkdir private
-mkdir certs
-mkdir db
-touch db/index
-touch db/serial
-touch db/crlnumber
-echo 01 > db/crlnumber
-$g_openssl rand -hex 16 > db/serial
-
-# gen gm root key
-$g_openssl ecparam -genkey -name SM2 -out private/gm-root-ca.pem.key
-
-# gen gm root csr
-$g_openssl req -config gm-root-ca.conf \
-    -key private/gm-root-ca.pem.key \
-    -new \
-    -out gm-root-ca.csr \
-    -passout pass:$conf_passwd
-
-# gen gm root crt
-$g_openssl x509 -sm3 -req \
-    -extfile gm-root-ca.conf \
-    -in gm-root-ca.csr \
-    -extensions ca_ext \
-    -signkey private/gm-root-ca.pem.key \
-    -out gm-root-ca.pem.crt \
-    -days 3650 \
-    -passin pass:$conf_passwd
-
-cd $root/gm-sub-ca
-
-mkdir private
-mkdir certs
-mkdir db
-touch db/index
-touch db/serial
-touch db/crlnumber
-echo 01 > db/crlnumber
-$g_openssl rand -hex 16 > db/serial
-
-# gen gm sub key
-$g_openssl ecparam -genkey -name SM2 -out private/gm-sub-ca.pem.key
-
-# gen sub ca csr
-$g_openssl req -config gm-sub-ca.conf -key private/gm-sub-ca.pem.key -new -out gm-sub-ca.csr -passout pass:$conf_passwd
-
-# gen sub ca crt
-cd $root/gm-root-ca
-$g_openssl ca -config gm-root-ca.conf -in ../gm-sub-ca/gm-sub-ca.csr -out ../gm-sub-ca/gm-sub-ca.pem.crt -extensions sub_ca_ext -md sm3 -notext -passin pass:$conf_passwd -batch
-cd $root/gm-sub-ca
-
-# gen gm ocsp key
-$g_openssl ecparam -genkey -name SM2 -out private/gm-sub-ocsp.pem.key
-
-# gen gm ocsp csr
-$g_openssl req -new \
-    -subj "/C=CN/O=$conf_organization/CN=$conf_name OCSP GM Sub Responder" \
-    -key private/gm-sub-ocsp.pem.key \
-    -out gm-sub-ocsp.csr \
-    -passout pass:$conf_passwd
-
-# gen gm ocsp crt
-$g_openssl ca -config gm-sub-ca.conf -in gm-sub-ocsp.csr -out gm-sub-ocsp.pem.crt -extensions ocsp_ext -days 3650 -md sm3 -notext -passin pass:$conf_passwd -batch
+build_gm_ca $g_gm_root_ca_dir
+build_gm_sub_ca $g_gm_root_ca_dir $g_gm_sub_ca_dir
 
 
 # revoke crt

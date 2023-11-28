@@ -10,9 +10,9 @@ g_log_file=$g_output_dir/build.log
 g_debug=
 g_sh=bash
 
-source $g_root_dir/base_for_bash.func
-
 ################# Functions #################
+
+source $g_root_dir/tools-dev/base_for_bash.func
 
 function usage
 {
@@ -60,6 +60,12 @@ function build_certm
     export g_openssl=$g_tongsuo_dir/apps/openssl
     export g_csr_conf=$g_src_dir/assets/csr.conf
     export g_enc_csr_conf=$g_src_dir/assets/gm-enc-csr.conf
+    export g_root_ca_dir=$CERTM_OUTPUT_DIR/root-ca
+    export g_sub_ca_dir=$CERTM_OUTPUT_DIR/sub-ca
+    export g_gm_root_ca_dir=$CERTM_OUTPUT_DIR/gm-root-ca
+    export g_gm_sub_ca_dir=$CERTM_OUTPUT_DIR/gm-sub-ca
+    export g_client_dir=$CERTM_OUTPUT_DIR/clients
+    export g_server_dir=$CERTM_OUTPUT_DIR/servers
 
     [ -f $g_output_dir/.build ] && return 0
 
@@ -80,10 +86,6 @@ function install_certm
     echo "# certm install start: v1" >> ~/.bashrc
 
     # set alias to ~/.bashrc
-    #   certm-mkcert=$g_root_dir/src/tools/mkcert.sh
-    #   certm-revoke=$g_root_dir/src/tools/revoke.sh
-    #   certm-gencrl=$g_root_dir/src/tools/gencrl.sh
-    #   certm-genca=$g_root_dir/src/tools/genca.sh
 
     echo "alias certm-mkcert=$g_root_dir/src/tools/mkcert.sh" >> ~/.bashrc
     echo "alias certm-revoke=$g_root_dir/src/tools/revoke.sh" >> ~/.bashrc
@@ -91,13 +93,6 @@ function install_certm
     echo "alias certm-genca=$g_root_dir/src/tools/genca.sh" >> ~/.bashrc
 
     # export environment variables to ~/.bashrc
-    #   export CERTM_ROOT_DIR=$g_root_dir
-    #   export CERTM_OUTPUT_DIR=$g_output_dir
-    #   export CERTM_LOG_FILE=$g_log_file
-    #   export CERTM_CONFIG_FILE=$g_config_file
-    #   export CERTM_OPENSSL=$g_openssl
-    #   export CERTM_CSR_CONF=$g_csr_conf
-    #   export CERTM_ENC_CSR_CONF=$g_enc_csr_conf
 
     echo "export CERTM_ROOT_DIR=$g_root_dir" >> ~/.bashrc
     echo "export CERTM_OUTPUT_DIR=$g_output_dir" >> ~/.bashrc
@@ -106,10 +101,14 @@ function install_certm
     echo "export CERTM_OPENSSL=$g_openssl" >> ~/.bashrc
     echo "export CERTM_CSR_CONF=$g_csr_conf" >> ~/.bashrc
     echo "export CERTM_ENC_CSR_CONF=$g_enc_csr_conf" >> ~/.bashrc
+    echo "export CERTM_ROOT_CA_DIR=$g_root_ca_dir" >> ~/.bashrc
+    echo "export CERTM_SUB_CA_DIR=$g_sub_ca_dir" >> ~/.bashrc
+    echo "export CERTM_GM_ROOT_CA_DIR=$g_gm_root_ca_dir" >> ~/.bashrc
+    echo "export CERTM_GM_SUB_CA_DIR=$g_gm_sub_ca_dir" >> ~/.bashrc
+    echo "export CERTM_CLIENT_DIR=$g_client_dir" >> ~/.bashrc
+    echo "export CERTM_SERVER_DIR=$g_server_dir" >> ~/.bashrc
 
     echo "# certm install end: v1" >> ~/.bashrc
-
-    exec bash
 }
 
 ################# Main #################
@@ -176,9 +175,10 @@ fi
 
 g_d_err_title="INIT"
 
-git submodule init && git submodule update >& $g_log_file || d_err_exit "Failed to init submodules"
-
 [ -d $g_output_dir ] || mkdir $g_output_dir
+[ -f $g_log_file ] || touch $g_log_file
+
+git submodule init && git submodule update >& $g_log_file || d_err_exit "Failed to init submodules"
 
 g_d_err_title="BUILD"
 
@@ -195,5 +195,6 @@ g_d_err_title="INSTALL"
 if [ -n "$opt_install" ]; then
     install_certm
     d_success_info "Install certm"
+    exec bash
     exit 0
 fi

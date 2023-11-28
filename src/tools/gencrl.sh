@@ -2,12 +2,14 @@
 
 tool_dir=`dirname $0`
 
-. $tool_dir/../settings.conf
+source $CERTM_CONFIG_FILE
 
-cd $g_sub_ca_dir
-$g_openssl ca -gencrl -config sub-ca.conf -out sub-ca.pem.crl -passin pass:root
+ca_dir=$CERTM_OUTPUT_DIR/ca
+
+cd $CERTM_SUB_CA_DIR
+$CERTM_OPENSSL ca -gencrl -config ca.conf -out $ca_dir/sub-ca.pem.crl -passin pass:root
 cd -
 
-cd $g_gm_sub_ca_dir
-$g_openssl ca -gencrl -config gm-sub-ca.conf -out gm-sub-ca.pem.crl -md sm3 -passin pass:root
+cd $CERTM_GM_SUB_CA_DIR
+$CERTM_OPENSSL ca -gencrl -config ca.conf -out $ca_dir/gm-sub-ca.pem.crl -md sm3 -passin pass:root
 cd -

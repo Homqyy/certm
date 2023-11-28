@@ -4,42 +4,68 @@
 ####################### Global Variables #######################
 tool_dir=`dirname $0`
 
-. $tool_dir/../settings.conf
+source $CERTM_CONFIG_FILE
 
-name=$1
-cert_type=${2:-server}
-is_gm=$3
+conf_name=$1
+conf_type=${2:-client}
+conf_is_gm=
 
-cert_name=$name.$conf_domain_suffix
-cert_dir=$g_root_dir/${cert_type}s/$cert_name
+cert_name=
 ca_dir=
-ca_conf=
-if [ -n "$is_gm" ]; then
-    cert_dir=$cert_dir/gm
-    ca_dir=$g_gm_sub_ca_dir
-    ca_conf=gm-sub-ca.conf
-else
-    cert_dir=$cert_dir/rsa
-    ca_dir=$g_sub_ca_dir
-    ca_conf=sub-ca.conf
-fi
+ca_conf=ca.conf
 
 ####################### Functions #######################
 
 function usage {
-    echo "Usage: $0 <name> [server|client] [is_gm]"
+    echo "Usage: $0 [OPTIONS] <domain_name>"
+    echo "Options:"
+    echo "  -h, --help          Show help"
+    echo "  -s, --server        Server certificate, default is client"
+    echo "  -g, --gm            GM Certificate, default is rsa"
     echo "Example: $0 example server 1"
 }
 
 ####################### Main #######################
 
+# Parse parameters
+
+while [ -n "$1" ]; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -s|--server)
+            conf_type=server
+            ;;
+        -g|--gm)
+            conf_is_gm=1
+            ;;
+        *)
+            name=$1
+            ;;
+    esac
+    shift
+done
+
+cert_name=$name.$g_conf_domain_suffix
+cert_dir=$CERTM_OUTPUT_DIR/${conf_type}s/$cert_name
+
+if [ -n "$conf_is_gm" ]; then
+    cert_dir=$cert_dir/gm
+    ca_dir=$CERTM_GM_SUB_CA_DIR
+else
+    cert_dir=$cert_dir/rsa
+    ca_dir=$CERTM_SUB_CA_DIR
+fi
+
 # check parameters
-if [ -z "$name" ]; then
+if [ -z "$conf_name" ]; then
     usage
     exit 1
 fi
 
-if [ "$cert_type" != "server" ] && [ "$cert_type" != "client" ]; then
+if [ "$conf_type" != "server" ] && [ "$conf_type" != "client" ]; then
     usage
     exit 1
 fi
@@ -58,5 +84,5 @@ cd $ca_dir
 
 for cert in $certs; do
     echo "Revoke $cert_dir/$cert"
-    $g_openssl ca -config $ca_conf -revoke $cert_dir/$cert -crl_reason unspecified
+    $CERTM_OPENSSL ca -config $ca_conf -revoke $cert_dir/$cert -crl_reason unspecified
 done
