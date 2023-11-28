@@ -1,0 +1,6 @@
+[submodule "tongsuo"]
+	path = tongsuo
+	url = https://github.com/Tongsuo-Project/Tongsuo.git
+[submodule "tools-dev"]
+	path = tools-dev
+	url = https://github.com/Homqyy/tools-dev.git

@@ -4,7 +4,7 @@
 
 tool_dir=`dirname $0`
 
-. $tool_dir/../settings.conf
+source $CERTM_CONFIG_FILE
 
 conf_passwd=root
 conf_domain_name=
@@ -29,7 +29,7 @@ function usage
     echo "  -b, --begin <DATE>  Begin date, default is now"
     echo "  -e, --end   <DATE>  End date, default is 1095 days"
     echo ""
-    echo "DATE: YYYYMMDDHHMMSSZ"
+    echo "DATE: format is YYYYMMDDHHMMSSZ, such as 20201027120000Z"
     echo ""
     echo "Example: $0 example"
 
@@ -60,7 +60,7 @@ function exit_on_error
 
     for c in $certs
     do
-        $g_openssl ca -config $conf -revoke $c -crl_reason unspecified
+        $CERTM_OPENSSL ca -config $conf -revoke $c -crl_reason unspecified
     done
 
     cd -
@@ -72,19 +72,19 @@ function gen_rsa
 {
     # gen key
 
-    $g_openssl genpkey -out $cert_dir/privkey.pem -algorithm RSA -pkeyopt rsa_keygen_bits:2048
+    $CERTM_OPENSSL genpkey -out $cert_dir/privkey.pem -algorithm RSA -pkeyopt rsa_keygen_bits:2048
     [ $? -eq 0 ] || exit_on_error 1
 
     # gen csr
 
-    $g_openssl req -new -config $cert_dir/csr.conf -key $cert_dir/privkey.pem -out $cert_dir/priv.csr
+    $CERTM_OPENSSL req -new -config $cert_dir/csr.conf -key $cert_dir/privkey.pem -out $cert_dir/priv.csr
     [ $? -eq 0 ] || exit_on_error 1
 
     # gen cert
 
     cd $g_sub_ca_dir
 
-    $g_openssl ca -config sub-ca.conf $date_options -in $cert_dir/priv.csr -out $cert_dir/cert.pem -extensions server_ext -notext -passin pass:$conf_passwd
+    $CERTM_OPENSSL ca -config sub-ca.conf $date_options -in $cert_dir/priv.csr -out $cert_dir/cert.pem -extensions server_ext -notext -passin pass:$conf_passwd
     [ $? -ne 0 ] && cd - && exit_on_error 1
 
     cd -
@@ -102,19 +102,19 @@ function gen_gm
 {
     # gen key
 
-    $g_openssl ecparam -genkey -name SM2 -out $cert_dir/privkey.pem
+    $CERTM_OPENSSL ecparam -genkey -name SM2 -out $cert_dir/privkey.pem
     [ $? -eq 0 ] || exit_on_error 1
 
     # gen csr
 
-    $g_openssl req -new -config $cert_dir/csr.conf -key $cert_dir/privkey.pem -out $cert_dir/priv.csr
+    $CERTM_OPENSSL req -new -config $cert_dir/csr.conf -key $cert_dir/privkey.pem -out $cert_dir/priv.csr
     [ $? -eq 0 ] || exit_on_error 1
 
     # gen cert
 
     cd $g_gm_sub_ca_dir
 
-    $g_openssl ca -config gm-sub-ca.conf $date_options -in $cert_dir/priv.csr -out $cert_dir/cert.pem -extensions server_gm_ext -md sm3 -notext -passin pass:$conf_passwd
+    $CERTM_OPENSSL ca -config gm-sub-ca.conf $date_options -in $cert_dir/priv.csr -out $cert_dir/cert.pem -extensions server_gm_ext -md sm3 -notext -passin pass:$conf_passwd
     [ $? -ne 0 ] && cd - && exit_on_error 1
 
     cd -
@@ -126,19 +126,19 @@ function gen_gm
 
     # gen enc key
 
-    $g_openssl ecparam -genkey -name SM2 -out $cert_dir/enc-privkey.pem
+    $CERTM_OPENSSL ecparam -genkey -name SM2 -out $cert_dir/enc-privkey.pem
     [ $? -eq 0 ] || exit_on_error 1
 
     # gen enc csr
 
-    $g_openssl req -new -config $cert_dir/enc-csr.conf -key $cert_dir/enc-privkey.pem -out $cert_dir/enc-priv.csr
+    $CERTM_OPENSSL req -new -config $cert_dir/enc-csr.conf -key $cert_dir/enc-privkey.pem -out $cert_dir/enc-priv.csr
     [ $? -eq 0 ] || exit_on_error 1
 
     # gen enc cert
 
     cd $g_gm_sub_ca_dir
 
-    $g_openssl ca -config gm-sub-ca.conf $date_options -in $cert_dir/enc-priv.csr -out $cert_dir/enc-cert.pem -extensions server_gm_enc_ext -md sm3 -notext -passin pass:$conf_passwd
+    $CERTM_OPENSSL ca -config gm-sub-ca.conf $date_options -in $cert_dir/enc-priv.csr -out $cert_dir/enc-cert.pem -extensions server_gm_enc_ext -md sm3 -notext -passin pass:$conf_passwd
     [ $? -ne 0 ] && cd - && exit_on_error 1
 
     cd -
@@ -157,6 +157,10 @@ function gen_gm
 trap exit_on_error SIGINT
 
 # parse options
+
+if [ $# -eq 0 ]; then
+    usage
+fi
 
 while [ $# -gt 0 ]
 do
@@ -187,7 +191,12 @@ do
 done
 
 dn=$conf_domain_name.$conf_domain_suffix
-cert_dir=$g_root_dir/$conf_type/$dn/$conf_cert_type
+
+if [ "$conf_type" == "servers" ]; then
+    cert_dir=$g_server_dir/$dn/$conf_cert_type
+else
+    cert_dir=$g_client_dir/$dn/$conf_cert_type
+fi
 
 # mkdir directory
 
@@ -200,14 +209,14 @@ mkdir -p $cert_dir
 
 # set csr config
 
-cp $g_csr_conf $cert_dir/csr.conf
+cp $CERTM_CSR_CONF $cert_dir/csr.conf
 
 sed -i "s/{{domain_name}}/$dn/g" $cert_dir/csr.conf
 sed -i "s/{{organization}}/$g_conf_organization/g" $cert_dir/csr.conf
 sed -i "s/{{organization_unit}}/$g_conf_organization_unit/g" $cert_dir/csr.conf
 
 if [ -n "$conf_gm_enable" ]; then
-    cp $g_enc_csr_conf $cert_dir/enc-csr.conf
+    cp $CERTM_ENC_CSR_CONF $cert_dir/enc-csr.conf
     sed -i "s/{{domain_name}}/$dn/g" $cert_dir/enc-csr.conf
     sed -i "s/{{organization}}/$g_conf_organization/g" $cert_dir/enc-csr.conf
     sed -i "s/{{organization_unit}}/$g_conf_organization_unit/g" $cert_dir/enc-csr.conf

@@ -10,15 +10,24 @@
 #     build root-ca, sub-ca, gm-root-ca, gm-sub-ca
 #
 
+################## Global Variables ##################
+
 bin_dir=$( cd `dirname $0`; pwd )
 
-. $bin_dir/settings.conf
+source $g_config_file
+source $g_root_dir/base_for_bash.func
 
-root=$g_root_dir
+root=$g_output_dir
 
 conf_passwd=root
 
+################## Functions ##################
+
+################## Main ##################
+
 # init
+
+d_redirect_to_file $g_log_file
 
 g_ca_names="root-ca sub-ca gm-root-ca gm-sub-ca"
 
@@ -99,20 +108,20 @@ $g_openssl ecparam -genkey -name SM2 -out private/gm-root-ca.pem.key
 
 # gen gm root csr
 $g_openssl req -config gm-root-ca.conf \
-	-key private/gm-root-ca.pem.key \
-	-new \
-	-out gm-root-ca.csr \
-	-passout pass:$conf_passwd
+    -key private/gm-root-ca.pem.key \
+    -new \
+    -out gm-root-ca.csr \
+    -passout pass:$conf_passwd
 
 # gen gm root crt
 $g_openssl x509 -sm3 -req \
-	-extfile gm-root-ca.conf \
-	-in gm-root-ca.csr \
-	-extensions ca_ext \
-	-signkey private/gm-root-ca.pem.key \
-	-out gm-root-ca.pem.crt \
+    -extfile gm-root-ca.conf \
+    -in gm-root-ca.csr \
+    -extensions ca_ext \
+    -signkey private/gm-root-ca.pem.key \
+    -out gm-root-ca.pem.crt \
     -days 3650 \
-	-passin pass:$conf_passwd
+    -passin pass:$conf_passwd
 
 cd $root/gm-sub-ca
 
@@ -141,10 +150,10 @@ $g_openssl ecparam -genkey -name SM2 -out private/gm-sub-ocsp.pem.key
 
 # gen gm ocsp csr
 $g_openssl req -new \
-	-subj "/C=CN/O=$conf_organization/CN=$conf_name OCSP GM Sub Responder" \
-	-key private/gm-sub-ocsp.pem.key \
-	-out gm-sub-ocsp.csr \
-	-passout pass:$conf_passwd
+    -subj "/C=CN/O=$conf_organization/CN=$conf_name OCSP GM Sub Responder" \
+    -key private/gm-sub-ocsp.pem.key \
+    -out gm-sub-ocsp.csr \
+    -passout pass:$conf_passwd
 
 # gen gm ocsp crt
 $g_openssl ca -config gm-sub-ca.conf -in gm-sub-ocsp.csr -out gm-sub-ocsp.pem.crt -extensions ocsp_ext -days 3650 -md sm3 -notext -passin pass:$conf_passwd -batch
