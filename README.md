@@ -41,7 +41,7 @@ Certificate generation tool; the generated certificates are placed in the `outpu
 Usage:
 
 ```bash
-Usage: /home/admin/workspaces/certm/src/tools/mkcert.sh [OPTIONS] <domain_name>
+Usage: certm-mkcert [OPTIONS] <domain_name>
 Options:
   -h, --help          Show help
   -d, --debug         Enable debug mode
@@ -52,7 +52,7 @@ Options:
 
 DATE: format is YYYYMMDDHHMMSSZ, such as 20201027120000Z
 
-Example: /home/admin/workspaces/certm/src/tools/mkcert.sh example
+Example: certm-mkcert example
 ```
 
 - `domain_name`: Certificate domain name, can be a second-level or third-level domain. It automatically concatenates with the domain suffix `g_conf_domain_suffix` to form a complete domain name, e.g., `example` becomes `example.example.cn`.
@@ -106,7 +106,7 @@ Certificate revocation tool; usage:
 
 ```bash
 [admin@cloud certm]$ certm-revoke 
-Usage: /home/admin/workspaces/certm/src/tools/revoke.sh [OPTIONS] <domain_name>
+Usage: certm-revoke [OPTIONS] <domain_name>
 Options:
  
 
