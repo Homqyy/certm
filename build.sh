@@ -8,8 +8,10 @@ g_tongsuo_install_dir=/usr/local/tongsuo
 g_src_dir=$g_root_dir/src
 g_output_dir=$g_root_dir/output
 g_log_file=$g_output_dir/build.log
+g_openssl=
 g_debug=
 g_restart=
+g_install_to_system=
 g_sh=bash
 g_export_envs="CERTM_ROOT_DIR CERTM_OUTPUT_DIR \
         CERTM_LOG_FILE CERTM_CONFIG_FILE \
@@ -39,6 +41,7 @@ function usage
     echo "  -i, --install   Install certm"
     echo "  -u, --uninstall Uninstall certm"
     echo "  -r, --rebuild   Rebuild certm"
+    echo "  -s, --system    Install certm to system (only valid on build; need sudo)"
 }
 
 function clean
@@ -50,33 +53,87 @@ function clean
         cd $g_tongsuo_dir
 
         git clean -xf . > /dev/null 2>&1
+        git checkout . > /dev/null 2>&1
 
-        [ -f .installed ] && rm .installed
+        [ -f .build ] && rm .build
+        [ -f .system ] && rm .system
 
-        cd -
+        cd - >& /dev/null
 
-        # TODO: uninstall tongsuo from system
-
-        # [ -d $g_tongsuo_install_dir ] && rm -rf $g_tongsuo_install_dir
+        uninstall_tongsuo
     fi
+
+    d_success_info "Clean all the build files"
 }
 
 function build_tongsuo
 {
+    g_openssl=$g_tongsuo_dir/apps/openssl
+
     [ -d $g_tongsuo_dir ] || return 1
 
-    [ -f $g_tongsuo_dir/.installed ] && return 0
+    [ -f $g_tongsuo_dir/.build ] && return 0
+
+    rpath=
+    if [ -n "$g_install_to_system" ]; then
+        # whether is install to system
+        [ -d $g_tongsuo_install_dir ] && return 0
+        rpath="-Wl,-rpath,$g_tongsuo_install_dir/lib64"
+    else
+        rpath="-Wl,-rpath,$g_tongsuo_dir"
+    fi
+
 
     cd $g_tongsuo_dir
 
     # TODO: support install to system, but need sudo
-    ./config --prefix=$g_tongsuo_install_dir -Wl,-rpath,$g_tongsuo_dir enable-ec_elgamal enable-paillier enable-ntls >> $g_log_file 2>&1 \
+    ./config --prefix=$g_tongsuo_install_dir $rpath enable-ec_elgamal enable-paillier enable-ntls >> $g_log_file 2>&1 \
         && make >> $g_log_file 2>&1 \
-        || (cd -; return 1)
+        || (cd - >& /dev/null; return 1)
 
-    cd -
+    cd - >& /dev/null
 
-    touch $g_tongsuo_dir/.installed
+    [ -n "$g_install_to_system" ] && touch $g_tongsuo_dir/.system
+    touch $g_tongsuo_dir/.build
+
+    d_success_info "Build tongsuo"
+
+    return 0
+}
+
+function install_tongsuo
+{
+    # set openssl to tongsuo of system
+    [ -f $g_tongsuo_dir/.system ] \
+        && g_openssl=$g_tongsuo_install_dir/bin/tongsuo
+
+    # whether is enable install to system
+    [ -f $g_tongsuo_dir/.system ] || return 0
+
+    # whether is installed
+    [ -d $g_tongsuo_install_dir ] && return 0
+
+    [ -d $g_tongsuo_dir ] || return 1
+
+    cd $g_tongsuo_dir
+
+    sudo make install_programs >> $g_log_file 2>&1 \
+        || (cd - >& /dev/null; return 1)
+
+    cd - >& /dev/null
+
+    return 0
+}
+
+function uninstall_tongsuo
+{
+    # whether is enable install to system
+    [ -n $g_install_to_system ] || return 0
+
+    # whether is installed
+    [ -d $g_tongsuo_install_dir ] || return 0
+
+    echo "Warning: Manually uninstall tongsuo from $g_tongsuo_install_dir: rm -rf $g_tongsuo_install_dir"
 
     return 0
 }
@@ -86,8 +143,8 @@ function build_certm
     export g_root_dir
     export g_output_dir
     export g_log_file
+    export g_openssl
     export g_config_file=$g_root_dir/settings.conf
-    export g_openssl=$g_tongsuo_dir/apps/openssl
     export g_csr_conf=$g_src_dir/assets/csr.conf
     export g_enc_csr_conf=$g_src_dir/assets/gm-enc-csr.conf
     export g_root_ca_dir=$g_output_dir/root-ca
@@ -102,6 +159,23 @@ function build_certm
     $g_sh $g_src_dir/init.sh
 
     touch $g_output_dir/.build
+
+    d_success_info "Build certm"
+
+    return 0
+}
+
+function uninstall_certm
+{
+    # whether is installed
+    grep -q "# certm install start: v1" ~/.bashrc || return 0
+
+    # remove install from ~/.bashrc
+    sed -i '/# certm install start: v1/,/# certm insatll end: v1/d' ~/.bashrc
+
+    g_restart=1
+
+    d_success_info "Uninstall certm"
 }
 
 function install_certm
@@ -144,6 +218,10 @@ function install_certm
     done
 
     echo "# certm install end: v1" >> ~/.bashrc
+
+    g_restart=1
+
+    d_success_info "Install certm"
 }
 
 ################# Main #################
@@ -185,6 +263,10 @@ do
             rm -f $g_output_dir/.build
             shift
             ;;
+        -s|--system)
+            g_install_to_system=1
+            shift
+            ;;
         *)
             echo "Unknown option: $1"
             usage
@@ -194,19 +276,14 @@ do
 done
 
 if [ -n "$opt_uninstall" ]; then
-    # whether is installed
-    if grep -q "# certm install start: v1" ~/.bashrc
-    then
-        # remove install from ~/.bashrc
-        sed -i '/# certm install start: v1/,/# certm insatll end: v1/d' ~/.bashrc
-    fi
-    g_restart=1
-    d_success_info "Uninstall certm"
+    uninstall_certm
+    uninstall_tongsuo
+    exit 0
 fi
 
 if [ -n "$opt_clean" ]; then
     clean
-    d_success_info "Clean all the build files"
+    exit 0
 fi
 
 g_d_err_title="INIT"
@@ -220,18 +297,13 @@ g_d_err_title="BUILD"
 
 build_tongsuo || d_err_exit "Build tongsuo"
 
-d_success_info "Build tongsuo"
-
 build_certm || d_err_exit "Build certm"
-
-d_success_info "Build certm"
 
 g_d_err_title="INSTALL"
 
 if [ -n "$opt_install" ]; then
-    install_certm
-    d_success_info "Install certm"
-    g_restart=1
+    install_tongsuo || d_err_exit "Install tongsuo"
+    install_certm || d_err_exit "Install certm"
 fi
 
 g_d_err_title="DONE"
