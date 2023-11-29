@@ -36,8 +36,15 @@ function clean
     rm -rf $g_output_dir
 
     # clean tongsuo
-    git clean -xf $g_tongsuo_dir
-    rm -f $g_tongsuo_dir/.installed
+    if [ -d $g_tongsuo_dir ]; then
+        cd $g_tongsuo_dir
+
+        git clean -xf . > /dev/null 2>&1
+
+        [ -f .installed ] && rm .installed
+
+        cd -
+    fi
 }
 
 function build_tongsuo
