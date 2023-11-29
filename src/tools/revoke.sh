@@ -19,7 +19,7 @@ ca_conf=ca.conf
 source $CERTM_ROOT_DIR/tools-dev/base_for_bash.func
 
 function usage {
-    echo "Usage: $0 [OPTIONS] <domain_name>"
+    echo "Usage: certm-revoke [OPTIONS] <domain_name>"
     echo "Options:"
     echo "  -h, --help          Show help"
     echo "  -s, --server        Server certificate, default is client"
