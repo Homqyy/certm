@@ -41,7 +41,7 @@
 使用方法：
 
 ```bash
-Usage: /home/admin/workspaces/certm/src/tools/mkcert.sh [OPTIONS] <domain_name>
+Usage: certm-mkcert [OPTIONS] <domain_name>
 Options:
   -h, --help          Show help
   -d, --debug         Enable debug mode
@@ -52,7 +52,7 @@ Options:
 
 DATE: format is YYYYMMDDHHMMSSZ, such as 20201027120000Z
 
-Example: /home/admin/workspaces/certm/src/tools/mkcert.sh example
+Example: cerm-mkcert example
 ```
 
 - `domain_name`：证书域名，可以是二级域名，也可以是三级域名，它会自动跟域名后缀`g_conf_domain_suffix`拼接成完整的域名，比如`example`会拼接成`example.example.cn`。
@@ -105,8 +105,7 @@ certm-gencrl
 吊销证书工具；使用方法：
 
 ```bash
-[admin@cloud certm]$ certm-revoke 
-Usage: /home/admin/workspaces/certm/src/tools/revoke.sh [OPTIONS] <domain_name>
+Usage: certm-revoke [OPTIONS] <domain_name>
 Options:
   -h, --help          Show help
   -s, --server        Server certificate, default is client
