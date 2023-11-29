@@ -12,6 +12,11 @@ g_sh=bash
 
 ################# Functions #################
 
+[ -d $g_output_dir ] || mkdir $g_output_dir
+[ -f $g_log_file ] || touch $g_log_file
+
+git submodule init && git submodule update >& $g_log_file || (echo "Failed to init submodules"; exit 1)
+
 source $g_root_dir/tools-dev/base_for_bash.func
 
 function usage
@@ -177,11 +182,6 @@ if [ -n "$opt_clean" ]; then
 fi
 
 g_d_err_title="INIT"
-
-[ -d $g_output_dir ] || mkdir $g_output_dir
-[ -f $g_log_file ] || touch $g_log_file
-
-git submodule init && git submodule update >& $g_log_file || d_err_exit "Failed to init submodules"
 
 g_d_err_title="BUILD"
 
