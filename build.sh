@@ -15,7 +15,7 @@ g_sh=bash
 [ -d $g_output_dir ] || mkdir $g_output_dir
 [ -f $g_log_file ] || touch $g_log_file
 
-git submodule init && git submodule update >& $g_log_file || (echo "Failed to init submodules"; exit 1)
+git submodule init && git submodule update >> $g_log_file 2>&1 || (echo "Failed to init submodules"; exit 1)
 
 source $g_root_dir/tools-dev/base_for_bash.func
 
@@ -55,8 +55,8 @@ function build_tongsuo
 
     cd $g_tongsuo_dir
 
-    ./config --prefix=/usr/local/tongsuo -Wl,-rpath,/usr/local/tongsuo/lib enable-ec_elgamal enable-paillier enable-ntls >& $g_log_file \
-        && make >& $g_log_file \
+    ./config --prefix=/usr/local/tongsuo -Wl,-rpath,/usr/local/tongsuo/lib enable-ec_elgamal enable-paillier enable-ntls >> $g_log_file 2>&1 \
+        && make >> $g_log_file 2>&1 \
         || (cd -; return 1)
 
     cd -
