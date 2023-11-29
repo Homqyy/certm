@@ -21,7 +21,7 @@ date_options=
 
 function usage
 {
-    echo "Usage: $0 [OPTIONS] <domain_name>"
+    echo "Usage: certm-mkcert [OPTIONS] <domain_name>"
     echo "Options:"
     echo "  -h, --help          Show help"
     echo "  -d, --debug         Enable debug mode"
