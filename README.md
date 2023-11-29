@@ -64,7 +64,7 @@ Example: /home/admin/workspaces/certm/src/tools/mkcert.sh example
 
 When generating a certificate, the certificate information is printed to the standard output. You can check if the certificate information is correct. If it is, press `y` to agree to generate the certificate, otherwise press `n` to not generate the certificate:
 
-![mkcert-mkcert](/docs/assets/certm-mkcert.png)
+![mkcert-mkcert](docs/assets/certm-mkcert.png)
 
 ### certm-genca
 
