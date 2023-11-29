@@ -19,7 +19,7 @@ source $g_root_dir/tools-dev/base_for_bash.func
 
 root=$g_output_dir
 
-conf_passwd=root
+conf_passwd=$g_conf_password
 
 ################## Functions ##################
 

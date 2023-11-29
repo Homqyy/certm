@@ -16,6 +16,8 @@ ca_conf=ca.conf
 
 ####################### Functions #######################
 
+source $CERTM_ROOT_DIR/tools-dev/base_for_bash.func
+
 function usage {
     echo "Usage: $0 [OPTIONS] <domain_name>"
     echo "Options:"
@@ -42,6 +44,17 @@ while [ -n "$1" ]; do
             conf_is_gm=1
             ;;
         *)
+            # whether is invalid option
+            if [[ "$1" =~ ^-.* ]]; then
+                echo "Unknown option: $1"
+                usage
+            fi
+
+            if [ -n "$name" ]; then
+                echo "Unknown option: $1"
+                usage
+            fi
+
             name=$1
             ;;
     esac
@@ -82,7 +95,11 @@ certs=`ls $cert_dir | grep -E "cert.pem|enc-cert.pem"`
 # revoke all certificate
 cd $ca_dir
 
+g_d_err_title="Revoke"
+
 for cert in $certs; do
-    echo "Revoke $cert_dir/$cert"
-    $CERTM_OPENSSL ca -config $ca_conf -revoke $cert_dir/$cert -crl_reason unspecified
+    $CERTM_OPENSSL ca -config $ca_conf -revoke $cert_dir/$cert -crl_reason unspecified >> $CERTM_LOG_FILE 2>&1
+    [ $? -eq 0 ] || d_err_exit "Revoke $cert_dir/$cert"
+
+    d_success_info "Revoke $cert_dir/$cert"
 done

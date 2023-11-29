@@ -6,7 +6,7 @@ tool_dir=`dirname $0`
 
 source $CERTM_CONFIG_FILE
 
-conf_passwd=root
+conf_passwd=$g_conf_password
 conf_domain_name=
 conf_gm_enable=
 conf_type=clients
@@ -66,6 +66,14 @@ function exit_on_error
 
     cd -
 
+    rm -rf $cert_dir
+
+    domain_dir=`dirname $cert_dir`
+
+    if [ -z "`ls -A $domain_dir`" ]; then
+        rm -rf $domain_dir
+    fi
+
     exit 1;
 }
 
@@ -76,7 +84,7 @@ function gen_rsa
     $CERTM_OPENSSL genpkey -out $cert_dir/privkey.pem \
                            -algorithm RSA \
                            -pkeyopt rsa_keygen_bits:2048
-    [ $? -eq 0 ] || exit_on_error 1
+    [ $? -eq 0 ] || exit_on_error
 
     # gen csr
 
@@ -84,7 +92,7 @@ function gen_rsa
                        -config $cert_dir/csr.conf \
                        -key $cert_dir/privkey.pem \
                        -out $cert_dir/priv.csr \
-        || exit_on_error 1
+        || exit_on_error
 
     # gen cert
 
@@ -97,17 +105,21 @@ function gen_rsa
                       -extensions server_ext \
                       -notext \
                       -passin pass:$conf_passwd \
-        || exit_on_error 1
+        || exit_on_error
 
     cd -
+
+    # verify whether cert was generated
+
+    [ -f $cert_dir/cert.pem ] || exit_on_error
 
     # gen cert chain
 
     cat $cert_dir/cert.pem >> $cert_dir/chain.pem
-    [ $? -eq 0 ] || exit_on_error 1
+    [ $? -eq 0 ] || exit_on_error
 
     cat $CERTM_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
-    [ $? -eq 0 ] || exit_on_error 1
+    [ $? -eq 0 ] || exit_on_error
 }
 
 function gen_gm
@@ -117,7 +129,7 @@ function gen_gm
     $CERTM_OPENSSL ecparam -genkey \
                            -name SM2 \
                            -out $cert_dir/privkey.pem \
-        || exit_on_error 1
+        || exit_on_error
 
     # gen csr
 
@@ -125,7 +137,7 @@ function gen_gm
                        -config $cert_dir/csr.conf \
                        -key $cert_dir/privkey.pem \
                        -out $cert_dir/priv.csr \
-        || exit_on_error 1
+        || exit_on_error
 
     # gen cert
 
@@ -139,9 +151,13 @@ function gen_gm
                       -md sm3 \
                       -notext \
                       -passin pass:$conf_passwd \
-        || exit_on_error 1
+        || exit_on_error
 
     cd -
+    
+    # Verify whether cert was generated
+
+    [ -f $cert_dir/cert.pem ] || exit_on_error
 
     # gen cert chain
 
@@ -153,7 +169,7 @@ function gen_gm
     $CERTM_OPENSSL ecparam -genkey \
                            -name SM2 \
                            -out $cert_dir/enc-privkey.pem \
-        || exit_on_error 1
+        || exit_on_error
 
     # gen enc csr
 
@@ -161,7 +177,7 @@ function gen_gm
                        -config $cert_dir/enc-csr.conf \
                        -key $cert_dir/enc-privkey.pem \
                        -out $cert_dir/enc-priv.csr \
-        || exit_on_error 1
+        || exit_on_error
 
     # gen enc cert
 
@@ -175,17 +191,21 @@ function gen_gm
                       -md sm3 \
                       -notext \
                       -passin pass:$conf_passwd \
-        || exit_on_error 1
+        || exit_on_error
 
     cd -
+
+    # Verify whether enc-cert was generated
+
+    [ -f $cert_dir/enc-cert.pem ] || exit_on_error
 
     # gen enc cert chain
 
     cat $cert_dir/enc-cert.pem >> $cert_dir/enc-chain.pem
-    [ $? -eq 0 ] || exit_on_error 1
+    [ $? -eq 0 ] || exit_on_error
 
     cat $CERTM_GM_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
-    [ $? -eq 0 ] || exit_on_error 1
+    [ $? -eq 0 ] || exit_on_error
 }
 
 ####################### Main #######################
@@ -223,11 +243,23 @@ do
             shift
             ;;
         *)
+            # whether is invalid option
+            if [[ "$1" =~ ^-.* ]]; then
+                echo "Unknown option: $1"
+                usage
+            fi
+
+            if [ -n "$conf_domain_name" ]; then
+                echo "Unknown option: $1"
+                usage
+            fi
+
             conf_domain_name=$1
             ;;
     esac
     shift
 done
+
 
 dn=$conf_domain_name.$g_conf_domain_suffix
 
