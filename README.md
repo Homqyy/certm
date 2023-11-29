@@ -105,7 +105,6 @@ certm-gencrl
 Certificate revocation tool; usage:
 
 ```bash
-[admin@cloud certm]$ certm-revoke 
 Usage: certm-revoke [OPTIONS] <domain_name>
 Options:
  
