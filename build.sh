@@ -29,7 +29,10 @@ function usage
 function clean
 {
     rm -rf $g_output_dir
-    rm -rf $g_tongsuo_dir/
+
+    # clean tongsuo
+    git clean -xf $g_tongsuo_dir
+    rm -f $g_tongsuo_dir/.installed
 }
 
 function build_tongsuo
