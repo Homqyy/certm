@@ -66,16 +66,22 @@ function clean
     d_success_info "Clean all the build files"
 }
 
+tongsuo_system=
+
 function build_tongsuo
 {
     g_openssl=$g_tongsuo_dir/apps/openssl
+
+    tongsuo_system=$g_install_to_system
+
+    [ -f $g_tongsuo_dir/.system ] && tongsuo_system=1
 
     [ -d $g_tongsuo_dir ] || return 1
 
     [ -f $g_tongsuo_dir/.build ] && return 0
 
     rpath=
-    if [ -n "$g_install_to_system" ]; then
+    if [ -n "$tongsuo_system" ]; then
         # whether is install to system
         if [ -d $g_tongsuo_install_dir ]; then
 	    touch $g_tongsuo_dir/.system
@@ -100,7 +106,7 @@ function build_tongsuo
 
     cd - >& /dev/null
 
-    [ -n "$g_install_to_system" ] && touch $g_tongsuo_dir/.system
+    [ -n "$tongsuo_system" ] && touch $g_tongsuo_dir/.system
     touch $g_tongsuo_dir/.build
 
     d_success_info "Build tongsuo"
@@ -139,7 +145,7 @@ function install_tongsuo
 function uninstall_tongsuo
 {
     # whether is enable install to system
-    [ -n $g_install_to_system ] || return 0
+    [ -n $tongsuo_system ] || return 0
 
     # whether is installed
     [ -d $g_tongsuo_install_dir ] || return 0
