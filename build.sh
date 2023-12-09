@@ -77,7 +77,10 @@ function build_tongsuo
     rpath=
     if [ -n "$g_install_to_system" ]; then
         # whether is install to system
-        [ -d $g_tongsuo_install_dir ] && return 0
+        if [ -d $g_tongsuo_install_dir ]; then
+	    touch $g_tongsuo_dir/.system
+	    return 0
+	fi
         rpath="-Wl,-rpath,$g_tongsuo_install_dir/lib64"
     else
         rpath="-Wl,-rpath,$g_tongsuo_dir"
