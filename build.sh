@@ -85,6 +85,7 @@ function build_tongsuo
         # whether is install to system
         if [ -d $g_tongsuo_install_dir ]; then
 	    touch $g_tongsuo_dir/.system
+	    g_openssl=$g_tongsuo_install_dir/bin/tongsuo
 	    return 0
 	fi
         rpath="-Wl,-rpath,$g_tongsuo_install_dir/lib64"
