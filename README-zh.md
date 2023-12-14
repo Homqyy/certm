@@ -2,6 +2,15 @@
 
 证书管理工具
 
+## 开发计划
+
+- [x] 支持ECDSA
+- [ ] 虚拟环境
+- [ ] 重构`csr.conf`和`settings.conf`方案
+- [ ] 支持设置ECDSA的曲线名
+- [ ] 支持 renew 证书
+- [ ] 用`subenv`作为变量替换工具
+
 ## 部署和使用
 
 1. 设置配置文件 `settings.conf`：
