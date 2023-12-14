@@ -2,6 +2,15 @@
 
 Certificate Management Tool
 
+## Development Plan
+
+- [x] Support ECDSA
+- [ ] Virtual environment
+- [ ] Refactor `csr.conf` and `settings.conf` schemes
+- [ ] Support specifying ECDSA curve names
+- [ ] Support certificate renewal
+- [ ] Utilize `subenv` as a variable substitution tool
+
 ## Deployment and Usage
 
 1. Set up the configuration file `settings.conf`:
