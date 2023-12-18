@@ -5,7 +5,7 @@ Certificate Management Tool
 ## Development Plan
 
 - [x] Support ECDSA
-- [ ] Virtual environment
+- [x] Virtual environment
 - [ ] Refactor `csr.conf` and `settings.conf` schemes
 - [ ] Support specifying ECDSA curve names
 - [ ] Support certificate renewal
@@ -41,7 +41,62 @@ Certificate Management Tool
     ./build.sh -i
     ```
 
-4. After successful installation, you can use the "certm-*" commands to generate and manage certificates.
+4. After successful installation, enter the virtual environment with the following command:
+
+    ```bash
+    source ./bin/activate.sh
+    ```
+
+5. Once inside the virtual environment, you can use the `certm-*` toolset, for example:
+
+    ```bash
+    certm-mkcert example
+    ```
+
+6. After use, exit the virtual environment with the following command:
+
+    ```bash
+    deactivate
+    ```
+
+### Virtual Environment
+
+The purpose of the virtual environment is twofold:
+
+1. Isolate different versions or instances of the certm environment
+2. Avoid polluting the system environment
+
+For example, you can install multiple certm environments on the same machine. When you need to use one, simply enter the corresponding virtual environment. Virtual environment commands are as follows:
+
+```bash
+Usage: source ./bin/activate.sh [options]
+
+Options:
+  -h, --help                  Show this help message and exit
+  -n, --name  <venv name>     Set the name of the virtual environment
+```
+
+- `-n/--name`: Name of the virtual environment, default is the root directory name, e.g., `certm`.
+
+To enter the virtual environment, use the following command:
+
+```bash
+source ./bin/activate.sh -n certm-1
+```
+
+- The above command will enter the `certm-1` virtual environment. The command prompt will change to something like:
+
+    ```text
+    (certm-1) [admin@cloud-host certm]$
+    ```
+
+    - Here, `certm-1` is the virtual environment name.
+
+- Once a virtual environment name is set, it will be remembered. The next time you enter the virtual environment, you don't need to specify the virtual environment name, for example:
+
+    ```bash
+    source ./bin/activate.sh
+    ```
 
 ### certm-mkcert
 
@@ -52,24 +107,27 @@ Usage:
 ```bash
 Usage: certm-mkcert [OPTIONS] <domain_name>
 Options:
-  -h, --help          Show help
-  -d, --debug         Enable debug mode
-  -g, --gm            Enable gm
-  -s, --server        Server certificate, default is client
-  -b, --begin <DATE>  Begin date, default is now
-  -e, --end   <DATE>  End date, default is 1095 days
+  -b, --begin <DATE>                      Begin date, default is now
+  -d, --debug                             Enable debug mode
+  -e, --end   <DATE>                      End date, default is 1095 days
+  -g, --gm                                Enable gm (deprecated, use "-t SM2" instead)
+  -h, --help                              Show help
+  -s, --server                            Server certificate, default is client
+  -t, --type  <rsa | ecdsa | sm2>         Certificate Key type, default is 'rsa', 
 
 DATE: format is YYYYMMDDHHMMSSZ, such as 20201027120000Z
 
-Example: certm-mkcert example
+Example: /home/admin/workspaces/certm/src/tools/mkcert.sh example
 ```
 
-- `domain_name`: Certificate domain name, can be a second-level or third-level domain. It automatically concatenates with the domain suffix `g_conf_domain_suffix` to form a complete domain name, e.g., `example` becomes `example.example.cn`.
-- `-d/--debug`: Enable debug mode, prints the script execution process
-- `-g/--gm`: Generate GM certificate (SM2 certificate)
-- `-s/--server`: Generate a server certificate, default is client certificate
-- `-b/--begin`: Certificate start date, default is the current time
+- `domain_name`: Certificate domain, can be a subdomain or third-level domain. It will automatically concatenate with the domain suffix `g_conf_domain_suffix` to form the complete domain, e.g., `example` will be concatenated to `example.example.cn`.
+- `-b/--begin`: Certificate effective date, default is the current time
+- `-d/--debug`: Enable debug mode, prints the script execution process when enabled
 - `-e/--end`: Certificate expiration date, default is 1095 days later
+- `-g/--gm`: Enable GM certificate (SM2 certificate), this option is deprecated, use `-t/--type sm2` instead
+- `-h/--help`: Show help information
+- `-s/--server`: Generate server certificate, default is client
+- `-t/--type`: Certificate type, supports RSA, ECDSA, and SM2, default is RSA
 
 When generating a certificate, the certificate information is printed to the standard output. You can check if the certificate information is correct. If it is, press `y` to agree to generate the certificate, otherwise press `n` to not generate the certificate:
 

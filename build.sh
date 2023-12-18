@@ -10,8 +10,6 @@ g_output_dir=$g_root_dir/output
 g_log_file=$g_output_dir/build.log
 g_openssl=
 g_debug=
-g_restart=
-g_install_to_system=
 g_sh=bash
 g_export_envs="CERTM_ROOT_DIR CERTM_OUTPUT_DIR \
         CERTM_LOG_FILE CERTM_CONFIG_FILE \
@@ -41,7 +39,6 @@ function usage
     echo "  -i, --install   Install certm"
     echo "  -u, --uninstall Uninstall certm"
     echo "  -r, --rebuild   Rebuild certm"
-    echo "  -s, --system    Install certm to system (only valid on build; need sudo)"
 }
 
 function clean
@@ -59,40 +56,20 @@ function clean
         [ -f .system ] && rm .system
 
         cd - >& /dev/null
-
-        uninstall_tongsuo
     fi
 
     d_success_info "Clean all the build files"
 }
 
-tongsuo_system=
-
 function build_tongsuo
 {
     g_openssl=$g_tongsuo_dir/apps/openssl
-
-    tongsuo_system=$g_install_to_system
-
-    [ -f $g_tongsuo_dir/.system ] && tongsuo_system=1
 
     [ -d $g_tongsuo_dir ] || return 1
 
     [ -f $g_tongsuo_dir/.build ] && return 0
 
-    rpath=
-    if [ -n "$tongsuo_system" ]; then
-        # whether is install to system
-        if [ -d $g_tongsuo_install_dir ]; then
-	    touch $g_tongsuo_dir/.system
-	    g_openssl=$g_tongsuo_install_dir/bin/tongsuo
-	    return 0
-	fi
-        rpath="-Wl,-rpath,$g_tongsuo_install_dir/lib64"
-    else
-        rpath="-Wl,-rpath,$g_tongsuo_dir"
-    fi
-
+    rpath="-Wl,-rpath,$g_tongsuo_dir"
 
     cd $g_tongsuo_dir
 
@@ -107,51 +84,9 @@ function build_tongsuo
 
     cd - >& /dev/null
 
-    [ -n "$tongsuo_system" ] && touch $g_tongsuo_dir/.system
     touch $g_tongsuo_dir/.build
 
     d_success_info "Build tongsuo"
-
-    return 0
-}
-
-function install_tongsuo
-{
-    # set openssl to tongsuo of system
-    [ -f $g_tongsuo_dir/.system ] \
-        && g_openssl=$g_tongsuo_install_dir/bin/tongsuo
-
-    # whether is enable install to system
-    [ -f $g_tongsuo_dir/.system ] || return 0
-
-    # whether is installed
-    [ -d $g_tongsuo_install_dir ] && return 0
-
-    [ -d $g_tongsuo_dir ] || return 1
-
-    cd $g_tongsuo_dir
-
-    sudo make install_programs >> $g_log_file 2>&1
-
-    if [ $? != 0 ]; then
-        cd - >& /dev/null
-	return 1
-    fi
-
-    cd - >& /dev/null
-
-    return 0
-}
-
-function uninstall_tongsuo
-{
-    # whether is enable install to system
-    [ -n $tongsuo_system ] || return 0
-
-    # whether is installed
-    [ -d $g_tongsuo_install_dir ] || return 0
-
-    echo "Warning: Manually uninstall tongsuo from $g_tongsuo_install_dir: rm -rf $g_tongsuo_install_dir"
 
     return 0
 }
@@ -185,59 +120,53 @@ function build_certm
 
 function uninstall_certm
 {
-    # whether is installed
-    grep -q "# certm install start: v1" ~/.bashrc || return 0
+    env_file=$g_output_dir/.env
 
-    # remove install from ~/.bashrc
-    sed -i '/# certm install start: v1/,/# certm insatll end: v1/d' ~/.bashrc
+    if [ -f $env_file ]; then
+        # whether is installed
+        grep -q "# certm install start: v1" $env_file || return 0
 
-    g_restart=1
+        # remove install from ~/.bashrc
+        sed -i '/# certm install start: v1/,/# certm insatll end: v1/d' $env_file
+    fi
 
     d_success_info "Uninstall certm"
 }
 
 function install_certm
 {
-    # whether is installed
-    grep -q "# certm install start: v1" ~/.bashrc && return 0
+    env_file=$g_output_dir/.env
 
-    if [ -f ~/.bashrc ]; then
-        cp ~/.bashrc ~/.bashrc.bak
+    if [ -f $env_file ]; then
+        # whether is installed
+        grep -q "# certm install start: v1" $env_file && return 0
+
+        # backup
+        cp $env_file $env_file.bak
     fi
 
-    echo "# certm install start: v1" >> ~/.bashrc
+    cat >> $env_file << EOF
+# certm install start: v1
+alias "certm-mkcert=$g_root_dir/src/tools/mkcert.sh"
+alias "certm-revoke=$g_root_dir/src/tools/revoke.sh"
+alias "certm-gencrl=$g_root_dir/src/tools/gencrl.sh"
+alias "certm-genca=$g_root_dir/src/tools/genca.sh"
 
-    # set alias to ~/.bashrc
-
-    echo "alias certm-mkcert=$g_root_dir/src/tools/mkcert.sh" >> ~/.bashrc
-    echo "alias certm-revoke=$g_root_dir/src/tools/revoke.sh" >> ~/.bashrc
-    echo "alias certm-gencrl=$g_root_dir/src/tools/gencrl.sh" >> ~/.bashrc
-    echo "alias certm-genca=$g_root_dir/src/tools/genca.sh" >> ~/.bashrc
-
-    # export environment variables to ~/.bashrc
-
-    CERTM_ROOT_DIR=$g_root_dir
-    CERTM_OUTPUT_DIR=$g_output_dir
-    CERTM_LOG_FILE=$g_log_file
-    CERTM_CONFIG_FILE=$g_config_file
-    CERTM_OPENSSL=$g_openssl
-    CERTM_CSR_CONF=$g_csr_conf
-    CERTM_ENC_CSR_CONF=$g_enc_csr_conf
-    CERTM_ROOT_CA_DIR=$g_root_ca_dir
-    CERTM_SUB_CA_DIR=$g_sub_ca_dir
-    CERTM_GM_ROOT_CA_DIR=$g_gm_root_ca_dir
-    CERTM_GM_SUB_CA_DIR=$g_gm_sub_ca_dir
-    CERTM_CLIENT_DIR=$g_client_dir
-    CERTM_SERVER_DIR=$g_server_dir
-
-    for e in $g_export_envs
-    do
-        echo "export $e=${!e}" >> ~/.bashrc
-    done
-
-    echo "# certm install end: v1" >> ~/.bashrc
-
-    g_restart=1
+export CERTM_ROOT_DIR=$g_root_dir
+export CERTM_OUTPUT_DIR=$g_output_dir
+export CERTM_LOG_FILE=$g_log_file
+export CERTM_CONFIG_FILE=$g_config_file
+export CERTM_OPENSSL=$g_openssl
+export CERTM_CSR_CONF=$g_csr_conf
+export CERTM_ENC_CSR_CONF=$g_enc_csr_conf
+export CERTM_ROOT_CA_DIR=$g_root_ca_dir
+export CERTM_SUB_CA_DIR=$g_sub_ca_dir
+export CERTM_GM_ROOT_CA_DIR=$g_gm_root_ca_dir
+export CERTM_GM_SUB_CA_DIR=$g_gm_sub_ca_dir
+export CERTM_CLIENT_DIR=$g_client_dir
+export CERTM_SERVER_DIR=$g_server_dir
+# certm install end: v1
+EOF
 
     d_success_info "Install certm"
 }
@@ -281,10 +210,6 @@ do
             rm -f $g_output_dir/.build
             shift
             ;;
-        -s|--system)
-            g_install_to_system=1
-            shift
-            ;;
         *)
             echo "Unknown option: $1"
             usage
@@ -295,7 +220,6 @@ done
 
 if [ -n "$opt_uninstall" ]; then
     uninstall_certm
-    uninstall_tongsuo
     exit 0
 fi
 
@@ -320,20 +244,7 @@ build_certm || d_err_exit "Build certm"
 g_d_err_title="INSTALL"
 
 if [ -n "$opt_install" ]; then
-    install_tongsuo || d_err_exit "Install tongsuo"
     install_certm || d_err_exit "Install certm"
 fi
 
 g_d_err_title="DONE"
-
-if [ -n "$g_restart" ]; then
-    d_success_info "Restart bash"
-
-    # clean CERTM_* environment variables
-    for e in $g_export_envs
-    do
-        unset $e
-    done
-
-    exec bash
-fi
