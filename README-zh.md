@@ -5,7 +5,7 @@
 ## 开发计划
 
 - [x] 支持ECDSA
-- [ ] 虚拟环境
+- [x] 虚拟环境
 - [ ] 重构`csr.conf`和`settings.conf`方案
 - [ ] 支持设置ECDSA的曲线名
 - [ ] 支持 renew 证书
@@ -41,7 +41,62 @@
     ./build.sh -i
     ```
 
-4. 安装成功后，可以使用“certm-*”命令完成证书的生成和管理。
+4. 安装成功后，就可以通过下面命令进入到虚拟环境中：
+
+    ```bash
+    source ./bin/activate.sh
+    ```
+
+5. 进入虚拟环境后，就可以使用`certm-*`工具集了，比如：
+
+    ```bash
+    certm-mkcert example
+    ```
+
+6. 使用完毕后可以通过下面命令退出虚拟环境：
+
+    ```bash
+    deactivate
+    ```
+
+### 虚拟环境
+
+虚拟环境的目的有两个：
+
+1. 隔离不同版本的或者不同的 certm 环境
+2. 避免污染系统环境
+
+比如，可以在同一台机器上安装多个 certm 环境，当要使用的时候，只需要进入到对应的虚拟环境中即可。虚拟环境命令如下：
+
+```bash
+Usage: source ./bin/activate.sh [options]
+
+Options:
+  -h, --help                  Show this help message and exit
+  -n, --name  <venv name>     Set the name of the virtual environment
+```
+
+- `-n/--name`：虚拟环境的名称，默认是根目录名称，比如`certm`。
+
+进入虚拟环境的命令如下所示：
+
+```bash
+source ./bin/activate.sh -n certm-1
+```
+
+- 上述命令将会进入到`certm-1`虚拟环境中，此时命令行提示符会变成如下所示类似：
+
+    ```text
+    (certm-1) [admin@cloud-host certm]$
+    ```
+
+    - 其中，`certm-1`为虚拟环境名称
+
+- 一旦设置了虚拟环境名称，就会被记住，下次进入虚拟环境时，就不需要再指定虚拟环境名称了，比如：
+
+    ```bash
+    source ./bin/activate.sh
+    ```
 
 ### certm-mkcert
 
@@ -52,24 +107,27 @@
 ```bash
 Usage: certm-mkcert [OPTIONS] <domain_name>
 Options:
-  -h, --help          Show help
-  -d, --debug         Enable debug mode
-  -g, --gm            Enable gm
-  -s, --server        Server certificate, default is client
-  -b, --begin <DATE>  Begin date, default is now
-  -e, --end   <DATE>  End date, default is 1095 days
+  -b, --begin <DATE>                      Begin date, default is now
+  -d, --debug                             Enable debug mode
+  -e, --end   <DATE>                      End date, default is 1095 days
+  -g, --gm                                Enable gm (deprecated, use "-t SM2" instead)
+  -h, --help                              Show help
+  -s, --server                            Server certificate, default is client
+  -t, --type  <rsa | ecdsa | sm2>         Certificate Key type, default is 'rsa', 
 
 DATE: format is YYYYMMDDHHMMSSZ, such as 20201027120000Z
 
-Example: cerm-mkcert example
+Example: /home/admin/workspaces/certm/src/tools/mkcert.sh example
 ```
 
 - `domain_name`：证书域名，可以是二级域名，也可以是三级域名，它会自动跟域名后缀`g_conf_domain_suffix`拼接成完整的域名，比如`example`会拼接成`example.example.cn`。
-- `-d/--debug`：是否开启调试模式，开启后会打印脚本执行的过程
-- `-g/--gm`：是否生成GM证书（SM2证书）
-- `-s/--server`：是否生成服务器证书，默认是客户端证书
 - `-b/--begin`：证书生效时间，默认是当前时间
+- `-d/--debug`：是否开启调试模式，开启后会打印脚本执行的过程
 - `-e/--end`：证书失效时间，默认是1095天后
+- `-g/--gm`：是否生成GM证书（SM2证书），该选项已经废弃，使用`-t/--type sm2`代替
+- `-h/--help`：显示帮助信息
+- `-s/--server`：是否生成服务器证书，默认是客户端证书
+- `-t/--type`：证书类型，支持RSA、ECDSA和SM2，默认是RSA
 
 生成证书时，会将证书信息打印到标准输出，你可以检查证书信息是否正确，如果正确则按`y`表示同意生成证书，否则按`n`表示不生成证书：
 
