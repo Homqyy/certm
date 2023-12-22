@@ -32,7 +32,7 @@ Certificate Management Tool
 2. Clone the repository to a Linux host
 
     ```bash
-    https://github.com/Homqyy/certm.git 
+    git clone https://github.com/Homqyy/certm.git
     ```
 
 3. Build and install "Certm":
@@ -116,15 +116,13 @@ Options:
   -t, --type  <rsa | ecdsa | sm2>         Certificate Key type, default is 'rsa', 
 
 DATE: format is YYYYMMDDHHMMSSZ, such as 20201027120000Z
-
-Example: /home/admin/workspaces/certm/src/tools/mkcert.sh example
 ```
 
 - `domain_name`: Certificate domain, can be a subdomain or third-level domain. It will automatically concatenate with the domain suffix `g_conf_domain_suffix` to form the complete domain, e.g., `example` will be concatenated to `example.example.cn`.
 - `-b/--begin`: Certificate effective date, default is the current time
 - `-d/--debug`: Enable debug mode, prints the script execution process when enabled
 - `-e/--end`: Certificate expiration date, default is 1095 days later
-- `-g/--gm`: Enable GM certificate (SM2 certificate), this option is deprecated, use `-t/--type sm2` instead
+- `-g/--gm`: Whether it is a GM certificate (SM2 certificate), this option is deprecated, use `-t/--type sm2` instead
 - `-h/--help`: Show help information
 - `-s/--server`: Generate server certificate, default is client
 - `-t/--type`: Certificate type, supports RSA, ECDSA, and SM2, default is RSA
@@ -174,16 +172,16 @@ Certificate revocation tool; usage:
 ```bash
 Usage: certm-revoke [OPTIONS] <domain_name>
 Options:
- 
-
- -h, --help          Show help
-  -s, --server        Server certificate, default is client
-  -g, --gm            GM Certificate, default is rsa
+  -g, --gm                        GM certificate(deprecated, use "-t sm2" instead)
+  -h, --help                      Show help
+  -s, --server                    Server certificate, default is client
+  -t, --type <rsa | ecdsa | sm2>  Certificate Key type, default is 'rsa'
 ```
 
 - `domain_name`: Certificate domain name, consistent with the domain name used in the `certm-mkcert` command
 - `-s/--server`: Whether it is a server certificate, default is client certificate
-- `-g/--gm`: Whether it is a GM certificate, default is an RSA certificate
+- `-g/--gm`: Whether it is a GM certificate (SM2 certificate), this option is deprecated, use `-t/--type sm2` instead
+- `-t/--type`: Certificate type, supports RSA, ECDSA, and SM2, default is RSA
 
 ## build.sh
 

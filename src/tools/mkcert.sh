@@ -26,14 +26,14 @@ function usage
     echo "  -b, --begin <DATE>                      Begin date, default is now"
     echo "  -d, --debug                             Enable debug mode"
     echo "  -e, --end   <DATE>                      End date, default is 1095 days"
-    echo "  -g, --gm                                Enable gm (deprecated, use \"-t SM2\" instead)"
+    echo "  -g, --gm                                GM certificate (deprecated, use \"-t sm2\" instead)"
     echo "  -h, --help                              Show help"
     echo "  -s, --server                            Server certificate, default is client"
-    echo "  -t, --type  <rsa | ecdsa | sm2>         Certificate Key type, default is 'rsa', "
+    echo "  -t, --type  <rsa | ecdsa | sm2>         Certificate Key type, default is 'rsa'"
     echo ""
     echo "DATE: format is YYYYMMDDHHMMSSZ, such as 20201027120000Z"
     echo ""
-    echo "Example: $0 example"
+    echo "Example: certm-mkcert cert1"
 
     exit 1
 }

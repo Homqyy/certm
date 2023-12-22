@@ -6,6 +6,8 @@ source $CERTM_CONFIG_FILE
 
 ca_dir=$CERTM_OUTPUT_DIR/ca
 
+[ -d $ca_dir ] || mkdir $ca_dir
+
 cd $CERTM_SUB_CA_DIR
 $CERTM_OPENSSL ca -gencrl -config ca.conf -out $ca_dir/sub-ca.pem.crl -passin pass:root
 cd -

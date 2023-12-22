@@ -32,7 +32,7 @@
 2. 克隆仓库到Linux主机上
 
     ```bash
-    https://github.com/Homqyy/certm.git 
+    git clone https://github.com/Homqyy/certm.git
     ```
 
 3. 构建并安装“Certm”：
@@ -116,8 +116,6 @@ Options:
   -t, --type  <rsa | ecdsa | sm2>         Certificate Key type, default is 'rsa', 
 
 DATE: format is YYYYMMDDHHMMSSZ, such as 20201027120000Z
-
-Example: /home/admin/workspaces/certm/src/tools/mkcert.sh example
 ```
 
 - `domain_name`：证书域名，可以是二级域名，也可以是三级域名，它会自动跟域名后缀`g_conf_domain_suffix`拼接成完整的域名，比如`example`会拼接成`example.example.cn`。
@@ -174,14 +172,16 @@ certm-gencrl
 ```bash
 Usage: certm-revoke [OPTIONS] <domain_name>
 Options:
-  -h, --help          Show help
-  -s, --server        Server certificate, default is client
-  -g, --gm            GM Certificate, default is rsa
+  -g, --gm                        GM certificate(deprecated, use "-t sm2" instead)
+  -h, --help                      Show help
+  -s, --server                    Server certificate, default is client
+  -t, --type <rsa | ecdsa | sm2>  Certificate Key type, default is 'rsa'
 ```
 
-- `domain_name`：证书域名，与`certm-mkcert`命令生成证书时的域名一致
+- `domain_name`：证书名称，与`certm-mkcert`命令生成证书时的名称一致
+- `-g/--gm`：是否生成GM证书（SM2证书），该选项已经废弃，使用`-t/--type sm2`代替
 - `-s/--server`：是否是服务器证书，默认是客户端证书
-- `-g/--gm`：是否是GM证书，默认是RSA证书
+- `-t/--type`：证书类型，支持RSA、ECDSA和SM2，默认是RSA
 
 ## build.sh
 
