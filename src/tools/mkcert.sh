@@ -78,6 +78,20 @@ function exit_on_error
     exit 1;
 }
 
+function convert_p12
+{
+    cert=$1
+    key=$2
+    out=$3
+
+    $CERTM_OPENSSL pkcs12 -export \
+        -in $cert \
+        -inkey $key \
+        -out $out \
+        -password pass:$g_conf_p12_password
+    [ $? -eq 0 ] || exit_on_error
+}
+
 function gen_rsa
 {
     # gen key
@@ -120,6 +134,10 @@ function gen_rsa
     [ $? -eq 0 ] || exit_on_error
 
     cat $CERTM_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
+    [ $? -eq 0 ] || exit_on_error
+
+    # gen p12
+    convert_p12 $cert_dir/cert.pem $cert_dir/privkey.pem $cert_dir/cert.p12
     [ $? -eq 0 ] || exit_on_error
 }
 
@@ -165,6 +183,10 @@ function gen_ecdsa
     [ $? -eq 0 ] || exit_on_error
 
     cat $CERTM_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
+    [ $? -eq 0 ] || exit_on_error
+
+    # gen p12
+    convert_p12 $cert_dir/cert.pem $cert_dir/privkey.pem $cert_dir/cert.p12
     [ $? -eq 0 ] || exit_on_error
 }
 
@@ -251,6 +273,13 @@ function gen_gm
     [ $? -eq 0 ] || exit_on_error
 
     cat $CERTM_GM_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
+    [ $? -eq 0 ] || exit_on_error
+
+    # gen p12
+    convert_p12 $cert_dir/cert.pem $cert_dir/privkey.pem $cert_dir/cert.p12
+    [ $? -eq 0 ] || exit_on_error
+
+    convert_p12 $cert_dir/enc-cert.pem $cert_dir/enc-privkey.pem $cert_dir/enc-cert.p12
     [ $? -eq 0 ] || exit_on_error
 }
 
