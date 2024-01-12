@@ -6,6 +6,7 @@
 
 - [x] 支持ECDSA
 - [x] 虚拟环境
+- [x] 支持基于 CSR 文件生成证书
 - [ ] 重构`csr.conf`和`settings.conf`方案
 - [ ] 支持设置ECDSA的曲线名
 - [ ] 支持 renew 证书
@@ -21,6 +22,7 @@
     g_conf_organization="YourOrganization"
     g_conf_organization_unit="Your OUnit"
     g_conf_password=root
+    g_conf_p12_password=root
     ```
 
     - `g_conf_name`：证书拥有者名称
@@ -28,6 +30,7 @@
     - `g_conf_organization`：证书拥有者所属组织
     - `g_conf_organization_unit`：证书拥有者所属组织单元
     - `g_conf_password`：CA密钥的密码
+    - `g_conf_p12_password`：p12证书文件的密码
 
 2. 克隆仓库到Linux主机上
 
@@ -112,6 +115,8 @@ Options:
   -e, --end   <DATE>                      End date, default is 1095 days
   -g, --gm                                Enable gm (deprecated, use "-t SM2" instead)
   -h, --help                              Show help
+  -k, --key <PRIVATE_KEY_FILE>            Private key file. If specified of CSR file(-r), will use this key file
+  -r, --request <CSR_FILE>                CSR file. If specified, will make certificate from CSR file
   -s, --server                            Server certificate, default is client
   -t, --type  <rsa | ecdsa | sm2>         Certificate Key type, default is 'rsa', 
 
@@ -124,6 +129,11 @@ DATE: format is YYYYMMDDHHMMSSZ, such as 20201027120000Z
 - `-e/--end`：证书失效时间，默认是1095天后
 - `-g/--gm`：是否生成GM证书（SM2证书），该选项已经废弃，使用`-t/--type sm2`代替
 - `-h/--help`：显示帮助信息
+- `-k/--key <PRIVATE_KEY_FILE>`：私钥文件；如果使用 CSR 文件生成证书，则需要指定私钥文件，否则会自动生成私钥文件：
+    - 这里的私钥文件时PEM格式
+    - 应该与`-t/--type`指定的证书类型一致
+    - 应该与`-r/--request`指定的CSR文件中的私钥一致
+- `-r/--request <CSR_FILE>`：CSR 文件；如果指定了 CSR 文件，则会用 CSR 文件生成证书
 - `-s/--server`：是否生成服务器证书，默认是客户端证书
 - `-t/--type`：证书类型，支持RSA、ECDSA和SM2，默认是RSA
 

@@ -6,6 +6,7 @@ Certificate Management Tool
 
 - [x] Support ECDSA
 - [x] Virtual environment
+- [x] Support generating certificates based on CSR files
 - [ ] Refactor `csr.conf` and `settings.conf` schemes
 - [ ] Support specifying ECDSA curve names
 - [ ] Support certificate renewal
@@ -21,6 +22,7 @@ Certificate Management Tool
     g_conf_organization="YourOrganization"
     g_conf_organization_unit="Your OUnit"
     g_conf_password=root
+    g_conf_p12_password=root
     ```
 
     - `g_conf_name`: Name of the certificate owner
@@ -28,6 +30,7 @@ Certificate Management Tool
     - `g_conf_organization`: Organization to which the certificate owner belongs
     - `g_conf_organization_unit`: Organizational unit to which the certificate owner belongs
     - `g_conf_password`: Password for the CA key
+    - `g_conf_p12_password`: Password for the p12 certificate file
 
 2. Clone the repository to a Linux host
 
@@ -112,6 +115,8 @@ Options:
   -e, --end   <DATE>                      End date, default is 1095 days
   -g, --gm                                Enable gm (deprecated, use "-t SM2" instead)
   -h, --help                              Show help
+  -k, --key <PRIVATE_KEY_FILE>            Private key file. If specified of CSR file(-r), will use this key file
+  -r, --request <CSR_FILE>                CSR file. If specified, will make certificate from CSR file
   -s, --server                            Server certificate, default is client
   -t, --type  <rsa | ecdsa | sm2>         Certificate Key type, default is 'rsa', 
 
@@ -124,6 +129,11 @@ DATE: format is YYYYMMDDHHMMSSZ, such as 20201027120000Z
 - `-e/--end`: Certificate expiration date, default is 1095 days later
 - `-g/--gm`: Whether it is a GM certificate (SM2 certificate), this option is deprecated, use `-t/--type sm2` instead
 - `-h/--help`: Show help information
+- `-k/--key <PRIVATE_KEY_FILE>`：Private key file; if you use CSR file to generate a certificate, you need to specify the private key file, otherwise the private key file will be generated automatically:
+    - The private key file here is in PEM format
+    - Should be consistent with the certificate type specified by `-t/--type`
+    - Should be consistent with the private key in the CSR file specified by `-r/--request
+- `-r/--request <CSR_FILE>`: CSR file. If specified, the certificate will be generated from the CSR file
 - `-s/--server`: Generate server certificate, default is client
 - `-t/--type`: Certificate type, supports RSA, ECDSA, and SM2, default is RSA
 

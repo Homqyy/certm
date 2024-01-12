@@ -152,6 +152,14 @@ alias "certm-revoke=$g_root_dir/src/tools/revoke.sh"
 alias "certm-gencrl=$g_root_dir/src/tools/gencrl.sh"
 alias "certm-genca=$g_root_dir/src/tools/genca.sh"
 
+alias "certm-cdroot=cd $g_root_dir"
+alias "certm-cdclients=cd $g_client_dir"
+alias "certm-cdservers=cd $g_server_dir"
+alias "certm-cdca=cd $g_output_dir/ca"
+alias "certm-lsclients=ls -l $g_client_dir"
+alias "certm-lsservers=ls -l $g_server_dir"
+alias "certm-lsca=ls -l $g_output_dir/ca"
+
 export CERTM_ROOT_DIR=$g_root_dir
 export CERTM_OUTPUT_DIR=$g_output_dir
 export CERTM_LOG_FILE=$g_log_file
