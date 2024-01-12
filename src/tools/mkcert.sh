@@ -406,11 +406,11 @@ do
             usage
             ;;
         -k|--key)
-            conf_key=$2
+            conf_key=`cd $( dirname $2 ); pwd`/$( basename $2 )
             shift
             ;;
         -r|--request)
-            conf_csr=$2
+            conf_csr=`cd $( dirname $2 ); pwd`/$( basename $2 )
             opt_gencsr=no
             g_clean_cert_dir=no
             shift;
