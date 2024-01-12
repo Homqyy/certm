@@ -364,7 +364,7 @@ function pkey_get_type
     info=$(openssl pkey -in $key -text -noout 2>&1)
 
     # judge the type of private key
-    if echo "$info" | grep -q "Private-Key: (.* bit, .* primes)"; then
+    if echo "$info" | grep -qP 'Private-Key: \(\d+ bit'; then
         echo "rsa"
     elif echo "$info" | grep -q "prime256v1"; then
         echo "ecdsa"
