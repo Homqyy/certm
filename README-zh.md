@@ -12,6 +12,7 @@
 - [ ] 支持 renew 证书
 - [x] 用`subenv`作为变量替换工具
 - [ ] 用`json`作为配置文件的格式
+- [x] 支持生成DSA证书
 
 ## 部署和使用
 
@@ -125,7 +126,7 @@ Options:
   -k, --key <PRIVATE_KEY_FILE>            Private key file. If specified of CSR file(-r), will use this key file
   -r, --request <CSR_FILE>                CSR file. If specified, will make certificate from CSR file
   -s, --server                            Server certificate, default is client
-  -t, --type  <rsa | ecdsa | sm2>         Certificate Key type, default is 'rsa', 
+  -t, --type  <rsa | ecdsa | sm2 | dsa>   Certificate Key type, default is 'rsa', 
 
 DATE: format is YYYYMMDDHHMMSSZ, such as 20201027120000Z
 ```
@@ -142,7 +143,7 @@ DATE: format is YYYYMMDDHHMMSSZ, such as 20201027120000Z
     - 应该与`-r/--request`指定的CSR文件中的私钥一致
 - `-r/--request <CSR_FILE>`：CSR 文件；如果指定了 CSR 文件，则会用 CSR 文件生成证书
 - `-s/--server`：是否生成服务器证书，默认是客户端证书
-- `-t/--type`：证书类型，支持RSA、ECDSA和SM2，默认是RSA
+- `-t/--type`：证书类型，支持RSA、ECDSA、SM2和DSA，默认是RSA
 
 生成证书时，会将证书信息打印到标准输出，你可以检查证书信息是否正确，如果正确则按`y`表示同意生成证书，否则按`n`表示不生成证书：
 
@@ -189,16 +190,16 @@ certm-gencrl
 ```bash
 Usage: certm-revoke [OPTIONS] <domain_name>
 Options:
-  -g, --gm                        GM certificate(deprecated, use "-t sm2" instead)
-  -h, --help                      Show help
-  -s, --server                    Server certificate, default is client
-  -t, --type <rsa | ecdsa | sm2>  Certificate Key type, default is 'rsa'
+  -g, --gm                              GM certificate(deprecated, use "-t sm2" instead)
+  -h, --help                            Show help
+  -s, --server                          Server certificate, default is client
+  -t, --type <rsa | ecdsa | sm2 | dsa>  Certificate Key type, default is 'rsa'
 ```
 
 - `domain_name`：证书名称，与`certm-mkcert`命令生成证书时的名称一致
 - `-g/--gm`：是否生成GM证书（SM2证书），该选项已经废弃，使用`-t/--type sm2`代替
 - `-s/--server`：是否是服务器证书，默认是客户端证书
-- `-t/--type`：证书类型，支持RSA、ECDSA和SM2，默认是RSA
+- `-t/--type`：证书类型，支持RSA、ECDSA、SM2和DSA，默认是RSA
 
 ### others
 
