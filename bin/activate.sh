@@ -55,16 +55,6 @@ function deactivate
 
 ############ Main ############
 
-# set default name of venv
-
-if [ -f $G_ENV_PATH/output/.venv_name ]; then
-    G_ENV_NAME=$(cat $G_ENV_PATH/output/.venv_name)
-fi
-
-if [ -z "$G_ENV_NAME" ]; then
-    G_ENV_NAME=$(basename $G_ENV_PATH)
-fi
-
 # Parse arguments
 
 opt_help=
@@ -83,7 +73,7 @@ do
         *)
             echo "Unknown option: $1" >&2
             usage
-            exit 1
+            return 1
             ;;
     esac
     shift
@@ -96,11 +86,28 @@ fi
 
 if [ -n "$opt_name" ]; then
     G_ENV_NAME="$opt_name"
+else
+    # set default name of venv
+
+    if [ -f $G_ENV_PATH/output/.venv_name ]; then
+        G_ENV_NAME=$(cat $G_ENV_PATH/output/.venv_name)
+    fi
+
+    if [ -z "$G_ENV_NAME" ]; then
+        G_ENV_NAME=$(basename $G_ENV_PATH)
+    fi
 fi
 
 if [ "${BASH_SOURCE}" = "$0" ]; then
     echo "You must source this script: \$ source $0" >&2
     exit 33
+fi
+
+# check prerequisites
+
+if [ ! -f $G_ENV_FILE ]; then
+    echo "Error: First run \"./build.sh -i \" to install certm" >&2
+    return 1
 fi
 
 # unset irrelevant variables

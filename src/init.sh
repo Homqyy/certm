@@ -32,11 +32,10 @@ function init_ca
 
     mkdir $root/$ca_name
 
-    cp $ca_temp_conf $root/$ca_name/ca.conf
-
-    sed -i "s/{{name}}/$g_conf_name/g" $root/$ca_name/ca.conf
-    sed -i "s/{{domain_suffix}}/$g_conf_domain_suffix/g" $root/$ca_name/ca.conf
-    sed -i "s/{{organization}}/$g_conf_organization/g" $root/$ca_name/ca.conf
+    export g_conf_name
+    export g_conf_domain_suffix
+    export g_conf_organization_name
+    envsubst '$g_conf_name $g_conf_domain_suffix $g_conf_organization_name' < $ca_temp_conf > $root/$ca_name/ca.conf
 }
 
 function build_rsa_ca
@@ -74,7 +73,7 @@ function build_rsa_ca
     # gen ocsp csr
     $g_openssl req -new \
                    -newkey rsa:2048 \
-                   -subj "/C=CN/O=$g_conf_organization/CN=$g_conf_name OCSP Root Responder" \
+                   -subj "/C=CN/O=$g_conf_organization_name/CN=$g_conf_name OCSP Root Responder" \
                    -keyout private/ocsp.pem.key \
                    -out ocsp.csr \
                    -passout pass:$conf_passwd
@@ -128,7 +127,7 @@ function build_rsa_sub_ca
     # gen ocsp csr
     $g_openssl req -new \
                    -newkey rsa:2048 \
-                   -subj "/C=CN/O=$g_conf_organization/CN=$g_conf_name OCSP Sub Responder" \
+                   -subj "/C=CN/O=$g_conf_organization_name/CN=$g_conf_name OCSP Sub Responder" \
                    -keyout private/ocsp.pem.key \
                    -out ocsp.csr \
                    -passout pass:$conf_passwd
@@ -229,7 +228,7 @@ function build_gm_sub_ca
 
     # gen gm ocsp csr
     $g_openssl req -new \
-        -subj "/C=CN/O=$g_conf_organization/CN=$g_conf_name OCSP GM Sub Responder" \
+        -subj "/C=CN/O=$g_conf_organization_name/CN=$g_conf_name OCSP GM Sub Responder" \
         -key private/ocsp.pem.key \
         -out ocsp.csr \
         -passout pass:$conf_passwd
@@ -260,7 +259,7 @@ g_ca_names="root-ca sub-ca gm-root-ca gm-sub-ca"
 
 for ca_name in $g_ca_names
 do
-    init_ca $ca_name $bin_dir/$ca_name.conf
+    init_ca $ca_name $g_template_dir/$ca_name.conf
 done
 
 # build rsa ca

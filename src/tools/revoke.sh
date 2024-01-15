@@ -4,7 +4,7 @@
 ####################### Global Variables #######################
 tool_dir=`dirname $0`
 
-source $CERTM_CONFIG_FILE
+source $CERTM_CF_SETTINGS
 
 conf_domain_name=
 conf_gm_enable=
@@ -15,7 +15,7 @@ cert_name=
 
 ####################### Functions #######################
 
-source $CERTM_ROOT_DIR/tools-dev/base_for_bash.func
+source $CERTM_PATH_ROOT_DIR/tools-dev/base_for_bash.func
 
 function usage {
     echo "Usage: certm-revoke [OPTIONS] <domain_name>"
@@ -41,7 +41,7 @@ function revoke {
     g_d_err_title="Revoke"
 
     for cert in $certs; do
-        $CERTM_OPENSSL ca -config $ca_conf -revoke $cert_dir/$cert -crl_reason unspecified >> $CERTM_LOG_FILE 2>&1
+        $CERTM_BIN_OPENSSL ca -config $ca_conf -revoke $cert_dir/$cert -crl_reason unspecified >> $CERTM_LOG_FILE 2>&1
         [ $? -eq 0 ] || d_err_exit "Revoke $cert_dir/$cert"
 
         d_success_info "Revoke $cert_dir/$cert"
@@ -94,9 +94,9 @@ fi
 dn=$conf_domain_name.$g_conf_domain_suffix
 
 if [ "$conf_type" == "servers" ]; then
-    cert_dir=$CERTM_SERVER_DIR/$dn/$conf_cert_type
+    cert_dir=$CERTM_PATH_SERVER_DIR/$dn/$conf_cert_type
 else
-    cert_dir=$CERTM_CLIENT_DIR/$dn/$conf_cert_type
+    cert_dir=$CERTM_PATH_CLIENT_DIR/$dn/$conf_cert_type
 fi
 
 # check directory is exist
@@ -109,15 +109,15 @@ fi
 
 case $conf_cert_type in
     rsa)
-        ca_dir=$CERTM_SUB_CA_DIR
+        ca_dir=$CERTM_PATH_SUB_CA_DIR
         revoke $ca_dir
         ;;
     ecdsa)
-        ca_dir=$CERTM_SUB_CA_DIR
+        ca_dir=$CERTM_PATH_SUB_CA_DIR
         revoke $ca_dir
         ;;
     sm2)
-        ca_dir=$CERTM_GM_SUB_CA_DIR
+        ca_dir=$CERTM_PATH_GM_SUB_CA_DIR
         revoke $ca_dir
         ;;
     *)
