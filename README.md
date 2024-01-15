@@ -11,7 +11,7 @@ Certificate Management Tool
 - [ ] Support specifying ECDSA curve names
 - [ ] Support certificate renewal
 - [x] Utilize `subenv` as a variable substitution tool
-- [ ] Use `json` as the format of the configuration file
+- [x] Use `json` as the format of the configuration file
 
 ## Deployment and Usage
 
@@ -125,7 +125,7 @@ Options:
   -k, --key <PRIVATE_KEY_FILE>            Private key file. If specified of CSR file(-r), will use this key file
   -r, --request <CSR_FILE>                CSR file. If specified, will make certificate from CSR file
   -s, --server                            Server certificate, default is client
-  -t, --type  <rsa | ecdsa | sm2>         Certificate Key type, default is 'rsa', 
+  -t, --type  <rsa | ecdsa | sm2 | dsa>   Certificate Key type, default is 'rsa', 
 
 DATE: format is YYYYMMDDHHMMSSZ, such as 20201027120000Z
 ```
@@ -142,7 +142,7 @@ DATE: format is YYYYMMDDHHMMSSZ, such as 20201027120000Z
     - Should be consistent with the private key in the CSR file specified by `-r/--request
 - `-r/--request <CSR_FILE>`: CSR file. If specified, the certificate will be generated from the CSR file
 - `-s/--server`: Generate server certificate, default is client
-- `-t/--type`: Certificate type, supports RSA, ECDSA, and SM2, default is RSA
+- `-t/--type`: Certificate type, supports RSA, ECDSA, SM2 and DSA, default is RSA
 
 When generating a certificate, the certificate information is printed to the standard output. You can check if the certificate information is correct. If it is, press `y` to agree to generate the certificate, otherwise press `n` to not generate the certificate:
 
@@ -189,16 +189,16 @@ Certificate revocation tool; usage:
 ```bash
 Usage: certm-revoke [OPTIONS] <domain_name>
 Options:
-  -g, --gm                        GM certificate(deprecated, use "-t sm2" instead)
-  -h, --help                      Show help
-  -s, --server                    Server certificate, default is client
-  -t, --type <rsa | ecdsa | sm2>  Certificate Key type, default is 'rsa'
+  -g, --gm                              GM certificate(deprecated, use "-t sm2" instead)
+  -h, --help                            Show help
+  -s, --server                          Server certificate, default is client
+  -t, --type <rsa | ecdsa | sm2 | dsa>  Certificate Key type, default is 'rsa'
 ```
 
 - `domain_name`: Certificate domain name, consistent with the domain name used in the `certm-mkcert` command
 - `-s/--server`: Whether it is a server certificate, default is client certificate
 - `-g/--gm`: Whether it is a GM certificate (SM2 certificate), this option is deprecated, use `-t/--type sm2` instead
-- `-t/--type`: Certificate type, supports RSA, ECDSA, and SM2, default is RSA
+- `-t/--type`: Certificate type, supports RSA, ECDSA, SM2 and DSA, default is RSA
 
 ### others
 

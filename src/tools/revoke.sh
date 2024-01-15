@@ -23,7 +23,7 @@ function usage {
     echo "  -g, --gm                        GM certificate(deprecated, use \"-t sm2\" instead)"
     echo "  -h, --help                      Show help"
     echo "  -s, --server                    Server certificate, default is client"
-    echo "  -t, --type <rsa | ecdsa | sm2>  Certificate Key type, default is 'rsa'"
+    echo "  -t, --type <rsa | ecdsa | sm2 | dsa>  Certificate Key type, default is 'rsa'"
     echo ""
     echo "Example: certm-revoke cert1"
 }
@@ -113,6 +113,10 @@ case $conf_cert_type in
         revoke $ca_dir
         ;;
     ecdsa)
+        ca_dir=$CERTM_PATH_SUB_CA_DIR
+        revoke $ca_dir
+        ;;
+    dsa)
         ca_dir=$CERTM_PATH_SUB_CA_DIR
         revoke $ca_dir
         ;;

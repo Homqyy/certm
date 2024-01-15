@@ -38,7 +38,7 @@ function usage
     echo "  -k, --key <PRIVATE_KEY_FILE>            Private key file. If specified of CSR file(-r), will use this key file"
     echo "  -r, --request <CSR_FILE>                CSR file. If specified, will make certificate from CSR file"
     echo "  -s, --server                            Server certificate, default is client"
-    echo "  -t, --type  <rsa | ecdsa | sm2>         Certificate Key type, default is 'rsa'"
+    echo "  -t, --type  <rsa | ecdsa | sm2 | dsa>   Certificate Key type, default is 'rsa'"
     echo ""
     echo "DATE: format is YYYYMMDDHHMMSSZ, such as 20201027120000Z"
     echo ""
@@ -132,7 +132,9 @@ function gen_rsa
         [ $? -eq 0 ] || exit_on_error
     else
         # check key type wthether is RSA
-        pkey_get_type $conf_key | grep -q rsa \
+        $CERTM_BIN_OPENSSL rsa -noout -check \
+                               -in $conf_key 2>&1 \
+                        | grep -q 'RSA key ok' \
             || { echo "Key type must be RSA"; exit 1; }
     fi
 
@@ -168,6 +170,76 @@ function gen_rsa
     [ $? -eq 0 ] || exit_on_error
 }
 
+function gen_dsa
+{
+    csr_config_file=$1
+    gencsr=$2
+
+    if [ "$conf_type" == "clients" ]; then
+        cert_opts='-extensions client_ext'
+    else
+        req_opts='-reqexts server_req_ext'
+        cert_opts='-extensions server_ext'
+    fi
+
+    if [ "$gencsr" == "yes" ]; then
+        # gen key
+
+        $CERTM_BIN_OPENSSL dsaparam \
+                            -genkey \
+                            -out $conf_key \
+                            -noout 2048
+        [ $? -eq 0 ] || exit_on_error
+
+        # gen csr
+
+        $CERTM_BIN_OPENSSL req -new \
+                        -config $csr_config_file \
+                        -key $conf_key \
+                        -out $conf_csr \
+                        $req_opts
+        [ $? -eq 0 ] || exit_on_error
+    else
+        # check key type wthether is dsa
+        $CERTM_BIN_OPENSSL dsa -noout \
+                          -in $conf_key 2>&1 \
+                    | grep -q 'Not a DSA key' \
+            && { echo "Key type must be DSA"; exit 1; }
+    fi
+
+    # gen cert
+
+    cd $CERTM_PATH_SUB_CA_DIR
+
+    $CERTM_BIN_OPENSSL ca -config ca.conf \
+                      $date_options \
+                      -in $conf_csr \
+                      -out $cert_dir/cert.pem \
+                      -notext \
+                      -passin pass:$conf_passwd \
+                      $cert_opts
+    [ $? -eq 0 ] || exit_on_error
+
+    cd -
+
+    # verify whether cert was generated
+
+    [ -f $cert_dir/cert.pem ] || exit_on_error
+
+    # gen cert chain
+
+    cat $cert_dir/cert.pem >> $cert_dir/chain.pem
+    [ $? -eq 0 ] || exit_on_error
+
+    cat $CERTM_PATH_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
+    [ $? -eq 0 ] || exit_on_error
+
+    # gen p12
+
+    convert_p12 $cert_dir/cert.pem $conf_key $cert_dir/cert.p12
+    [ $? -eq 0 ] || exit_on_error
+}
+
 function gen_ecdsa
 {
     csr_config_file=$1
@@ -198,8 +270,9 @@ function gen_ecdsa
         [ $? -eq 0 ] || exit_on_error
     else
         # check key type wthether is ecdsa
-        pkey_get_type $conf_key | grep -q ecdsa \
-            || { echo "Key type must be RSA"; exit 1; }
+        pkey_get_ec_type $conf_key  \
+                | grep -q 'ECDSA' \
+            || { echo "Key type must be ECDSA"; exit 1; }
     fi
 
     # gen cert
@@ -210,7 +283,6 @@ function gen_ecdsa
                       $date_options \
                       -in $conf_csr \
                       -out $cert_dir/cert.pem \
-                      -extensions server_ext \
                       -notext \
                       -passin pass:$conf_passwd \
                       $cert_opts
@@ -265,7 +337,8 @@ function gen_gm
         [ $? -eq 0 ] || exit_on_error
     else
         # check key type wthether is sm2
-        pkey_get_type $conf_key | grep -q sm2 \
+        pkey_get_ec_type $conf_key \
+                | grep -q 'SM2' \
             || { echo "Key type must be SM2"; exit 1; }
     fi
 
@@ -277,7 +350,6 @@ function gen_gm
                       $date_options \
                       -in $conf_csr \
                       -out $cert_dir/cert.pem \
-                      -extensions server_gm_ext \
                       -md sm3 \
                       -notext \
                       -passin pass:$conf_passwd \
@@ -313,7 +385,8 @@ function gen_gm
         [ $? -eq 0 ] || exit_on_error
     else
         # check key type wthether is sm2
-        pkey_get_type $conf_enc_key | grep -q sm2 \
+        pkey_get_ec_type $conf_enc_key \
+                | grep -q 'SM2' \
             || { echo "Key type must be SM2"; exit 1; }
     fi
 
@@ -325,7 +398,6 @@ function gen_gm
                       $date_options \
                       -in $conf_enc_csr \
                       -out $cert_dir/enc-cert.pem \
-                      -extensions server_gm_enc_ext \
                       -md sm3 \
                       -notext \
                       -passin pass:$conf_passwd \
@@ -398,7 +470,7 @@ function check_csr
     return 1
 }
 
-function pkey_get_type
+function pkey_get_ec_type
 {
     key=$1
 
@@ -408,18 +480,15 @@ function pkey_get_type
         exit 1
     fi
 
-    # get information of private key
-    info=$($CERTM_BIN_OPENSSL pkey -in $key -text -noout 2>&1)
+    # get type of ec key
+    name=`$CERTM_BIN_OPENSSL ec -in $key -noout -text 2>&1 | grep "ASN1 OID:" | awk '// { print $3 }'`
 
-    # judge the type of private key
-    if echo "$info" | grep -q "prime256v1"; then
-        echo "ecdsa"
-    elif echo "$info" | grep -q "ASN1 OID: SM2"; then
-        echo "sm2"
-    elif echo "$info" | grep -qP 'Private-Key: \(\d+ bit'; then
-        echo "rsa"
-    else
+    if [ -z "$name" ]; then
         echo "unknown"
+    elif [ "$name" == "SM2" ]; then
+        echo "SM2"
+    else
+        echo ECDSA;
     fi
 }
 
@@ -555,12 +624,15 @@ case $conf_cert_type in
     ecdsa)
         gen_ecdsa $csr_config_file $opt_gencsr
         ;;
+    dsa)
+        gen_dsa $csr_config_file $opt_gencsr
+        ;;
     sm2)
         conf_gm_enable=1
 
         if [ "$opt_gencsr" == "yes" ]; then
             # init csr enc
-            conf_enc_csr=$conf_csr
+            conf_enc_csr=$cert_dir/enc-priv.csr
             conf_enc_key=$cert_dir/enc-privkey.pem
         fi
 
