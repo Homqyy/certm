@@ -6,28 +6,20 @@ g_root_dir=`cd $(dirname $0); pwd`
 g_tongsuo_dir=$g_root_dir/tongsuo
 g_tongsuo_install_dir=/usr/local/tongsuo
 g_src_dir=$g_root_dir/src
+g_template_dir=$g_src_dir/template
 g_output_dir=$g_root_dir/output
 g_log_file=$g_output_dir/build.log
+g_config_file=$g_root_dir/settings.conf
 g_openssl=
 g_debug=
 g_sh=bash
-g_export_envs="CERTM_ROOT_DIR CERTM_OUTPUT_DIR \
-        CERTM_LOG_FILE CERTM_CONFIG_FILE \
-        CERTM_OPENSSL \
-        CERTM_CSR_CONF \
-        CERTM_ENC_CSR_CONF \
-        CERTM_ROOT_CA_DIR \
-        CERTM_SUB_CA_DIR \
-        CERTM_GM_ROOT_CA_DIR \
-        CERTM_GM_SUB_CA_DIR \
-        CERTM_CLIENT_DIR \
-        CERTM_SERVER_DIR"
 
 ################# Functions #################
 
 git submodule init && git submodule update || (echo "Failed to init submodules"; exit 1)
 
 source $g_root_dir/tools-dev/base_for_bash.func
+source $g_config_file
 
 function usage
 {
@@ -97,9 +89,9 @@ function build_certm
     export g_output_dir
     export g_log_file
     export g_openssl
-    export g_config_file=$g_root_dir/settings.conf
-    export g_csr_conf=$g_src_dir/assets/csr.conf
-    export g_enc_csr_conf=$g_src_dir/assets/gm-enc-csr.conf
+    export g_config_file
+    export g_template_dir
+    export g_csr_conf=$g_template_dir/csr.conf
     export g_root_ca_dir=$g_output_dir/root-ca
     export g_sub_ca_dir=$g_output_dir/sub-ca
     export g_gm_root_ca_dir=$g_output_dir/gm-root-ca
@@ -159,20 +151,32 @@ alias "certm-cdca=cd $g_output_dir/ca"
 alias "certm-lsclients=ls -l $g_client_dir"
 alias "certm-lsservers=ls -l $g_server_dir"
 alias "certm-lsca=ls -l $g_output_dir/ca"
+alias "certm-openssl= $g_openssl"
 
-export CERTM_ROOT_DIR=$g_root_dir
-export CERTM_OUTPUT_DIR=$g_output_dir
-export CERTM_LOG_FILE=$g_log_file
-export CERTM_CONFIG_FILE=$g_config_file
-export CERTM_OPENSSL=$g_openssl
-export CERTM_CSR_CONF=$g_csr_conf
-export CERTM_ENC_CSR_CONF=$g_enc_csr_conf
-export CERTM_ROOT_CA_DIR=$g_root_ca_dir
-export CERTM_SUB_CA_DIR=$g_sub_ca_dir
-export CERTM_GM_ROOT_CA_DIR=$g_gm_root_ca_dir
-export CERTM_GM_SUB_CA_DIR=$g_gm_sub_ca_dir
-export CERTM_CLIENT_DIR=$g_client_dir
-export CERTM_SERVER_DIR=$g_server_dir
+export CERTM_INFO_NAME="$g_conf_name"
+export CERTM_INFO_DN_SUFFIX="$g_conf_domain_suffix"
+export CERTM_INFO_CN="$g_conf_country_name"
+export CERTM_INFO_ST="$g_conf_state_or_province_name"
+export CERTM_INFO_L="$g_conf_locality_name"
+export CERTM_INFO_O="$g_conf_organization_name"
+export CERTM_INFO_OU="$g_conf_organization_unit_name"
+
+export CERTM_PATH_ROOT_DIR="$g_root_dir"
+export CERTM_PATH_OUTPUT_DIR="$g_output_dir"
+export CERTM_PATH_ROOT_CA_DIR="$g_root_ca_dir"
+export CERTM_PATH_SUB_CA_DIR="$g_sub_ca_dir"
+export CERTM_PATH_GM_ROOT_CA_DIR="$g_gm_root_ca_dir"
+export CERTM_PATH_GM_SUB_CA_DIR="$g_gm_sub_ca_dir"
+export CERTM_PATH_CLIENT_DIR="$g_client_dir"
+export CERTM_PATH_SERVER_DIR="$g_server_dir"
+
+export CERTM_CF_CSR="$g_csr_conf"
+export CERTM_CF_SETTINGS="$g_config_file"
+
+export CERTM_LOG_FILE="$g_log_file"
+
+export CERTM_BIN_OPENSSL="$g_openssl"
+
 # certm install end: v1
 EOF
 

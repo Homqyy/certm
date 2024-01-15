@@ -7,28 +7,35 @@
 - [x] 支持ECDSA
 - [x] 虚拟环境
 - [x] 支持基于 CSR 文件生成证书
-- [ ] 重构`csr.conf`和`settings.conf`方案
+- [x] 重构`csr.conf`和`settings.conf`方案
 - [ ] 支持设置ECDSA的曲线名
 - [ ] 支持 renew 证书
-- [ ] 用`subenv`作为变量替换工具
+- [x] 用`subenv`作为变量替换工具
+- [ ] 用`json`作为配置文件的格式
 
 ## 部署和使用
 
 1. 设置配置文件 `settings.conf`：
 
     ```text
-    g_conf_name="YourName"
+    g_conf_name=YourName
     g_conf_domain_suffix=domain.example.cn
-    g_conf_organization="YourOrganization"
-    g_conf_organization_unit="Your OUnit"
+    g_conf_country_name=CN
+    g_conf_state_or_province_name="Guang Dong"
+    g_conf_locality_name="Shen Zhen"
+    g_conf_organization_name=Personal
+    g_conf_organization_unit_name=OUnit
     g_conf_password=root
     g_conf_p12_password=root
     ```
 
-    - `g_conf_name`：证书拥有者名称
+    - `g_conf_name`：证书管理系统拥有者名称
     - `g_conf_domain_suffix`：证书域名后缀，也决定后续可以生成的证书域名
-    - `g_conf_organization`：证书拥有者所属组织
-    - `g_conf_organization_unit`：证书拥有者所属组织单元
+    - `g_conf_country_name`：证书拥有者所在国家
+    - `g_conf_state_or_province_name`：证书拥有者所在州或省或地区
+    - `g_conf_locality_name`：证书拥有者所在城市或地区
+    - `g_conf_organization_name`：证书拥有者所属组织
+    - `g_conf_organization_unit_name`：证书拥有者所属组织单元
     - `g_conf_password`：CA密钥的密码
     - `g_conf_p12_password`：p12证书文件的密码
 
@@ -192,6 +199,17 @@ Options:
 - `-g/--gm`：是否生成GM证书（SM2证书），该选项已经废弃，使用`-t/--type sm2`代替
 - `-s/--server`：是否是服务器证书，默认是客户端证书
 - `-t/--type`：证书类型，支持RSA、ECDSA和SM2，默认是RSA
+
+### others
+
+- certm-openssl
+- certm-cdroot
+- certm-cdclients
+- certm-cdservers
+- certm-cdca
+- certm-lsclients
+- certm-lsservers
+- certm-lsca
 
 ## build.sh
 

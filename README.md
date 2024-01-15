@@ -7,26 +7,33 @@ Certificate Management Tool
 - [x] Support ECDSA
 - [x] Virtual environment
 - [x] Support generating certificates based on CSR files
-- [ ] Refactor `csr.conf` and `settings.conf` schemes
+- [x] Refactor `csr.conf` and `settings.conf` schemes
 - [ ] Support specifying ECDSA curve names
 - [ ] Support certificate renewal
-- [ ] Utilize `subenv` as a variable substitution tool
+- [x] Utilize `subenv` as a variable substitution tool
+- [ ] Use `json` as the format of the configuration file
 
 ## Deployment and Usage
 
 1. Set up the configuration file `settings.conf`:
 
     ```text
-    g_conf_name="YourName"
+    g_conf_name=YourName
     g_conf_domain_suffix=domain.example.cn
-    g_conf_organization="YourOrganization"
-    g_conf_organization_unit="Your OUnit"
+    g_conf_country_name=CN
+    g_conf_state_or_province_name="Guang Dong"
+    g_conf_locality_name="Shen Zhen"
+    g_conf_organization_name=Personal
+    g_conf_organization_unit_name=OUnit
     g_conf_password=root
     g_conf_p12_password=root
     ```
 
     - `g_conf_name`: Name of the certificate owner
     - `g_conf_domain_suffix`: Certificate domain suffix, also determines the domain names of the certificates that can be generated subsequently
+    - `g_conf_country_name`: Country to which the certificate owner belongs
+    - `g_conf_state_or_province_name`: State or province or region to which the certificate owner belongs
+    - `g_conf_locality_name`: City or region to which the certificate owner belongs
     - `g_conf_organization`: Organization to which the certificate owner belongs
     - `g_conf_organization_unit`: Organizational unit to which the certificate owner belongs
     - `g_conf_password`: Password for the CA key
@@ -192,6 +199,17 @@ Options:
 - `-s/--server`: Whether it is a server certificate, default is client certificate
 - `-g/--gm`: Whether it is a GM certificate (SM2 certificate), this option is deprecated, use `-t/--type sm2` instead
 - `-t/--type`: Certificate type, supports RSA, ECDSA, and SM2, default is RSA
+
+### others
+
+- certm-openssl
+- certm-cdroot
+- certm-cdclients
+- certm-cdservers
+- certm-cdca
+- certm-lsclients
+- certm-lsservers
+- certm-lsca
 
 ## build.sh
 

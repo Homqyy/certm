@@ -4,7 +4,7 @@
 
 tool_dir=`dirname $0`
 
-source $CERTM_CONFIG_FILE
+source $CERTM_CF_SETTINGS
 
 conf_passwd=$g_conf_password
 conf_domain_name=
@@ -60,10 +60,10 @@ function exit_on_error
     conf=
 
     if [ -z "$conf_gm_enable" ]; then
-        ca=$CERTM_SUB_CA_DIR
+        ca=$CERTM_PATH_SUB_CA_DIR
         conf=ca.conf
     else
-        ca=$CERTM_GM_SUB_CA_DIR
+        ca=$CERTM_PATH_GM_SUB_CA_DIR
         conf=ca.conf
     fi
 
@@ -71,7 +71,7 @@ function exit_on_error
 
     for c in $certs
     do
-        $CERTM_OPENSSL ca -config $conf -revoke $c -crl_reason unspecified
+        $CERTM_BIN_OPENSSL ca -config $conf -revoke $c -crl_reason unspecified
     done
 
     cd -
@@ -95,7 +95,7 @@ function convert_p12
     key=$2
     out=$3
 
-    $CERTM_OPENSSL pkcs12 -export \
+    $CERTM_BIN_OPENSSL pkcs12 -export \
         -in $cert \
         -inkey $key \
         -out $out \
@@ -105,21 +105,30 @@ function convert_p12
 
 function gen_rsa
 {
-    gencsr=$1
+    csr_config_file=$1
+    gencsr=$2
+
+    if [ "$conf_type" == "clients" ]; then
+        cert_opts='-extensions client_ext'
+    else
+        req_opts='-reqexts server_req_ext'
+        cert_opts='-extensions server_ext'
+    fi
 
     if [ "$gencsr" == "yes" ]; then
         # gen key
 
-        $CERTM_OPENSSL genpkey -out $conf_key \
+        $CERTM_BIN_OPENSSL genpkey -out $conf_key \
                             -algorithm RSA \
                             -pkeyopt rsa_keygen_bits:2048
         [ $? -eq 0 ] || exit_on_error
 
         # gen csr
-        $CERTM_OPENSSL req -new \
-                        -config $cert_dir/csr.conf \
+        $CERTM_BIN_OPENSSL req -new \
+                        -config $csr_config_file \
                         -key $conf_key \
-                        -out $conf_csr
+                        -out $conf_csr \
+                        $req_opts
         [ $? -eq 0 ] || exit_on_error
     else
         # check key type wthether is RSA
@@ -129,15 +138,15 @@ function gen_rsa
 
     # gen cert
 
-    cd $CERTM_SUB_CA_DIR
+    cd $CERTM_PATH_SUB_CA_DIR
 
-    $CERTM_OPENSSL ca -config ca.conf \
+    $CERTM_BIN_OPENSSL ca -config ca.conf \
                       $date_options \
                       -in $conf_csr \
                       -out $cert_dir/cert.pem \
-                      -extensions server_ext \
                       -notext \
-                      -passin pass:$conf_passwd
+                      -passin pass:$conf_passwd \
+                      $cert_opts
     [ $? -eq 0 ] || exit_on_error
 
     cd -
@@ -151,7 +160,7 @@ function gen_rsa
     cat $cert_dir/cert.pem >> $cert_dir/chain.pem
     [ $? -eq 0 ] || exit_on_error
 
-    cat $CERTM_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
+    cat $CERTM_PATH_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
     [ $? -eq 0 ] || exit_on_error
 
     # gen p12
@@ -161,22 +170,31 @@ function gen_rsa
 
 function gen_ecdsa
 {
-    gencsr=$1
+    csr_config_file=$1
+    gencsr=$2
+
+    if [ "$conf_type" == "clients" ]; then
+        cert_opts='-extensions client_ext'
+    else
+        req_opts='-reqexts server_req_ext'
+        cert_opts='-extensions server_ext'
+    fi
 
     if [ "$gencsr" == "yes" ]; then
         # gen key
 
-        $CERTM_OPENSSL genpkey -out $conf_key \
+        $CERTM_BIN_OPENSSL genpkey -out $conf_key \
                             -algorithm EC \
                             -pkeyopt ec_paramgen_curve:P-256
         [ $? -eq 0 ] || exit_on_error
 
         # gen csr
 
-        $CERTM_OPENSSL req -new \
-                        -config $cert_dir/csr.conf \
+        $CERTM_BIN_OPENSSL req -new \
+                        -config $csr_config_file \
                         -key $conf_key \
-                        -out $conf_csr
+                        -out $conf_csr \
+                        $req_opts
         [ $? -eq 0 ] || exit_on_error
     else
         # check key type wthether is ecdsa
@@ -186,15 +204,16 @@ function gen_ecdsa
 
     # gen cert
 
-    cd $CERTM_SUB_CA_DIR
+    cd $CERTM_PATH_SUB_CA_DIR
 
-    $CERTM_OPENSSL ca -config ca.conf \
+    $CERTM_BIN_OPENSSL ca -config ca.conf \
                       $date_options \
                       -in $conf_csr \
                       -out $cert_dir/cert.pem \
                       -extensions server_ext \
                       -notext \
-                      -passin pass:$conf_passwd
+                      -passin pass:$conf_passwd \
+                      $cert_opts
     [ $? -eq 0 ] || exit_on_error
 
     cd -
@@ -208,7 +227,7 @@ function gen_ecdsa
     cat $cert_dir/cert.pem >> $cert_dir/chain.pem
     [ $? -eq 0 ] || exit_on_error
 
-    cat $CERTM_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
+    cat $CERTM_PATH_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
     [ $? -eq 0 ] || exit_on_error
 
     # gen p12
@@ -218,22 +237,31 @@ function gen_ecdsa
 
 function gen_gm
 {
-    gencsr=$1
+    csr_config_file=$1
+    gencsr=$2
+
+    if [ "$conf_type" == "clients" ]; then
+        cert_opts='-extensions client_ext'
+    else
+        req_opts='-reqexts server_req_ext'
+        cert_opts='-extensions server_ext'
+    fi
 
     if [ "$gencsr" == "yes" ]; then
         # gen key
 
-        $CERTM_OPENSSL ecparam -genkey \
+        $CERTM_BIN_OPENSSL ecparam -genkey \
                                -name SM2 \
                                -out $conf_key
         [ $? -eq 0 ] || exit_on_error
 
         # gen csr
 
-        $CERTM_OPENSSL req -new \
-                           -config $cert_dir/csr.conf \
+        $CERTM_BIN_OPENSSL req -new \
+                           -config $csr_config_file \
                            -key $conf_key \
-                           -out $conf_csr
+                           -out $conf_csr \
+                           $req_opts
         [ $? -eq 0 ] || exit_on_error
     else
         # check key type wthether is sm2
@@ -243,16 +271,17 @@ function gen_gm
 
     # gen cert
 
-    cd $CERTM_GM_SUB_CA_DIR
+    cd $CERTM_PATH_GM_SUB_CA_DIR
 
-    $CERTM_OPENSSL ca -config ca.conf \
+    $CERTM_BIN_OPENSSL ca -config ca.conf \
                       $date_options \
                       -in $conf_csr \
                       -out $cert_dir/cert.pem \
                       -extensions server_gm_ext \
                       -md sm3 \
                       -notext \
-                      -passin pass:$conf_passwd
+                      -passin pass:$conf_passwd \
+                      $cert_opts
     [ $? -eq 0 ] || exit_on_error
 
     cd -
@@ -264,22 +293,23 @@ function gen_gm
     # gen cert chain
 
     cat $cert_dir/cert.pem >> $cert_dir/chain.pem
-    cat $CERTM_GM_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
+    cat $CERTM_PATH_GM_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
 
     if [ "$gencsr" == "yes" ]; then
         # gen enc key
 
-        $CERTM_OPENSSL ecparam -genkey \
+        $CERTM_BIN_OPENSSL ecparam -genkey \
                                -name SM2 \
                                -out $conf_enc_key
         [ $? -eq 0 ] || exit_on_error
 
         # gen enc csr
 
-        $CERTM_OPENSSL req -new \
-                           -config $cert_dir/enc-csr.conf \
+        $CERTM_BIN_OPENSSL req -new \
+                           -config $csr_config_file \
                            -key $conf_enc_key \
-                           -out $conf_enc_csr
+                           -out $conf_enc_csr \
+                           $req_opts
         [ $? -eq 0 ] || exit_on_error
     else
         # check key type wthether is sm2
@@ -289,16 +319,17 @@ function gen_gm
 
     # gen enc cert
 
-    cd $CERTM_GM_SUB_CA_DIR
+    cd $CERTM_PATH_GM_SUB_CA_DIR
 
-    $CERTM_OPENSSL ca -config ca.conf \
+    $CERTM_BIN_OPENSSL ca -config ca.conf \
                       $date_options \
                       -in $conf_enc_csr \
                       -out $cert_dir/enc-cert.pem \
                       -extensions server_gm_enc_ext \
                       -md sm3 \
                       -notext \
-                      -passin pass:$conf_passwd
+                      -passin pass:$conf_passwd \
+                      $cert_opts
     [ $? -eq 0 ] || exit_on_error
 
     cd -
@@ -312,7 +343,7 @@ function gen_gm
     cat $cert_dir/enc-cert.pem >> $cert_dir/enc-chain.pem
     [ $? -eq 0 ] || exit_on_error
 
-    cat $CERTM_GM_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
+    cat $CERTM_PATH_GM_SUB_CA_DIR/ca.pem.crt >> $cert_dir/chain.pem
     [ $? -eq 0 ] || exit_on_error
 
     # gen p12
@@ -328,7 +359,7 @@ function check_csr
 {
     csr=$1
     key=$2
-    openssl_conf=$CERTM_SUB_CA_DIR/ca.conf
+    openssl_conf=$CERTM_PATH_SUB_CA_DIR/ca.conf
 
     [ -z "$conf_csr" ] && return 0
 
@@ -349,7 +380,7 @@ function check_csr
     fi
 
     t=`mktemp`
-    if $CERTM_OPENSSL req \
+    if $CERTM_BIN_OPENSSL req \
         -config $openssl_conf \
         -in $conf_csr \
         -key $conf_key \
@@ -378,7 +409,7 @@ function pkey_get_type
     fi
 
     # get information of private key
-    info=$($CERTM_OPENSSL pkey -in $key -text -noout 2>&1)
+    info=$($CERTM_BIN_OPENSSL pkey -in $key -text -noout 2>&1)
 
     # judge the type of private key
     if echo "$info" | grep -q "prime256v1"; then
@@ -413,6 +444,7 @@ do
             ;;
         -d|--debug)
             set -x
+            g_clean_cert_dir=no
             ;;
         -e|--end)
             conf_end=$2
@@ -474,11 +506,12 @@ else
     fi
 
     dn=$conf_domain_name.$g_conf_domain_suffix
+    export CERTM_INFO_DN=$dn
 
     if [ "$conf_type" == "servers" ]; then
-        cert_dir=$CERTM_SERVER_DIR/$dn/$conf_cert_type
+        cert_dir=$CERTM_PATH_SERVER_DIR/$dn/$conf_cert_type
     else
-        cert_dir=$CERTM_CLIENT_DIR/$dn/$conf_cert_type
+        cert_dir=$CERTM_PATH_CLIENT_DIR/$dn/$conf_cert_type
     fi
 
     # mkdir directory
@@ -492,10 +525,12 @@ else
 
     # init csr
 
-    cp $CERTM_CSR_CONF $cert_dir/csr.conf
-    sed -i "s/{{domain_name}}/$dn/g" $cert_dir/csr.conf
-    sed -i "s/{{organization}}/$g_conf_organization/g" $cert_dir/csr.conf
-    sed -i "s/{{organization_unit}}/$g_conf_organization_unit/g" $cert_dir/csr.conf
+    csr_config_file=$cert_dir/csr.conf
+
+    ## convert env to envsubst format, such as '$CERTM_INFO_CN $CERTM_INFO_ST ...'
+    envs=`env | grep CERTM_INFO_ | cut -d '=' -f 1 | sed 's/\(.*\)/$\1/g' | tr '\n' ' '`
+
+    envsubst "$envs" < $CERTM_CF_CSR > $csr_config_file
 
     # init default config
     conf_csr=$cert_dir/priv.csr
@@ -515,26 +550,21 @@ fi
 
 case $conf_cert_type in
     rsa)
-        gen_rsa $opt_gencsr
+        gen_rsa $csr_config_file $opt_gencsr
         ;;
     ecdsa)
-        gen_ecdsa $opt_gencsr
+        gen_ecdsa $csr_config_file $opt_gencsr
         ;;
     sm2)
         conf_gm_enable=1
 
         if [ "$opt_gencsr" == "yes" ]; then
             # init csr enc
-            cp $CERTM_ENC_CSR_CONF $cert_dir/enc-csr.conf
-            sed -i "s/{{domain_name}}/$dn/g" $cert_dir/enc-csr.conf
-            sed -i "s/{{organization}}/$g_conf_organization/g" $cert_dir/enc-csr.conf
-            sed -i "s/{{organization_unit}}/$g_conf_organization_unit/g" $cert_dir/enc-csr.conf
-
-            conf_enc_csr=$cert_dir/enc-priv.csr
+            conf_enc_csr=$conf_csr
             conf_enc_key=$cert_dir/enc-privkey.pem
         fi
 
-        gen_gm $opt_gencsr
+        gen_gm $csr_config_file $opt_gencsr
         ;;
     *)
         echo "Unknown certificate type: $conf_cert_type"
