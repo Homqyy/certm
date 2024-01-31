@@ -65,8 +65,7 @@ function build_tongsuo
 
     cd $g_tongsuo_dir
 
-    # TODO: support install to system, but need sudo
-    ./config --prefix=$g_tongsuo_install_dir $rpath no-shared enable-ec_elgamal enable-paillier enable-ntls >> $g_log_file 2>&1 \
+    ./config --prefix=$g_tongsuo_install_dir $rpath no-shared enable-ec_elgamal enable-paillier enable-ntls -DOPENSSL_TLS_SECURITY_LEVEL=0 >> $g_log_file 2>&1 \
         && make >> $g_log_file 2>&1
 
     if [ $? != 0 ]; then
