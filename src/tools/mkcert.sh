@@ -500,7 +500,7 @@ function pkey_get_ec_type
 
 ####################### Main #######################
 
-trap exit_on_error SIGINT
+trap exit_on_error SIGINT SIGTERM SIGQUIT
 
 # parse options
 
