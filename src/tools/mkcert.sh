@@ -317,10 +317,12 @@ function gen_gm
     gencsr=$2
 
     if [ "$conf_type" == "clients" ]; then
-        cert_opts='-extensions client_ext'
+        cert_opts='-extensions client_gm_ext'
+        cert_enc_opts='-extensions client_gm_enc_ext'
     else
         req_opts='-reqexts server_req_ext'
-        cert_opts='-extensions server_ext'
+        cert_opts='-extensions server_gm_ext'
+        cert_enc_opts='-extensions server_gm_enc_ext'
     fi
 
     if [ "$gencsr" == "yes" ]; then
