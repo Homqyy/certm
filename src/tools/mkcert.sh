@@ -26,8 +26,12 @@ g_clean_cert_dir=yes
 
 ####################### Functions #######################
 
+source $CERTM_PATH_ROOT_DIR/tools-dev/base_for_bash.func
+
 function usage
 {
+    [ -z "$1" ] || d_msg_err "$1"
+
     echo "Usage: certm-mkcert [OPTIONS] <domain_name>"
     echo "Options:"
     echo "  -b, --begin <DATE>                      Begin date, default is now"
@@ -135,7 +139,7 @@ function gen_rsa
         $CERTM_BIN_OPENSSL rsa -noout -check \
                                -in $conf_key 2>&1 \
                         | grep -q 'RSA key ok' \
-            || { echo "Key type must be RSA"; exit 1; }
+            || { d_msg_err "Key type must be RSA"; exit 1; }
     fi
 
     # gen cert
@@ -204,7 +208,7 @@ function gen_dsa
         $CERTM_BIN_OPENSSL dsa -noout \
                           -in $conf_key 2>&1 \
                     | grep -q 'Not a DSA key' \
-            && { echo "Key type must be DSA"; exit 1; }
+            && { d_msg_err "Key type must be DSA"; exit 1; }
     fi
 
     # gen cert
@@ -272,7 +276,7 @@ function gen_ecdsa
         # check key type wthether is ecdsa
         pkey_get_ec_type $conf_key  \
                 | grep -q 'ECDSA' \
-            || { echo "Key type must be ECDSA"; exit 1; }
+            || { d_msg_err "Key type must be ECDSA"; exit 1; }
     fi
 
     # gen cert
@@ -339,7 +343,7 @@ function gen_gm
         # check key type wthether is sm2
         pkey_get_ec_type $conf_key \
                 | grep -q 'SM2' \
-            || { echo "Key type must be SM2"; exit 1; }
+            || { d_msg_err "Key type must be SM2"; exit 1; }
     fi
 
     # gen cert
@@ -387,7 +391,7 @@ function gen_gm
         # check key type wthether is sm2
         pkey_get_ec_type $conf_enc_key \
                 | grep -q 'SM2' \
-            || { echo "Key type must be SM2"; exit 1; }
+            || { d_msg_err "Key type must be SM2"; exit 1; }
     fi
 
     # gen enc cert
@@ -401,7 +405,7 @@ function gen_gm
                       -md sm3 \
                       -notext \
                       -passin pass:$conf_passwd \
-                      $cert_opts
+                      $cert_enc_opts
     [ $? -eq 0 ] || exit_on_error
 
     cd -
@@ -437,17 +441,17 @@ function check_csr
 
     # check csr file is existed
     if [ ! -f "$conf_csr" ];then
-        echo "CSR file $conf_csr is not existed"
+        d_msg_err "CSR file $conf_csr is not existed"
         return 1
     fi
 
     # check key file is existed
     [ -z "$conf_key" ] \
-        && echo "private key must be specified, if csr file(-r) is specified" \
+        && d_msg_err "private key must be specified, if csr file(-r) is specified" \
         && return 1
 
     if [ ! -f "$conf_key" ];then
-        echo "Key file $conf_key is not existed"
+        d_msg_err "Key file $conf_key is not existed"
         return 1
     fi
 
@@ -464,7 +468,7 @@ function check_csr
         return 0
     fi
 
-    echo "csr error: `cat $t`"
+    d_msg_err "csr error: `cat $t`"
     rm $t;
 
     return 1
@@ -476,7 +480,7 @@ function pkey_get_ec_type
 
     # checking private key whether is existed
     if [ ! -f "$key" ]; then
-        echo "Private key file ($key) not found."
+        d_msg_err "Private key file ($key) not found."
         exit 1
     fi
 
@@ -547,13 +551,11 @@ do
         *)
             # whether is invalid option
             if [[ "$1" =~ ^-.* ]]; then
-                echo "Unknown option: $1"
-                usage
+                usage "Unknown option: $1"
             fi
 
             if [ -n "$conf_domain_name" ]; then
-                echo "Unknown option: $1"
-                usage
+                usage "Unknown option: $1"
             fi
 
             conf_domain_name=$1
@@ -564,14 +566,13 @@ done
 
 if [ -n "$conf_csr" ]; then
     check_csr $conf_csr $conf_key \
-        || { echo "CSR '$conf_csr' and Key '$conf_key' is not matched"; exit 1; }
+        || { d_msg_err "CSR '$conf_csr' and Key '$conf_key' is not matched"; exit 1; }
 
     cert_dir=`dirname $conf_csr`
 else
     # check config
     if [ -z "$conf_domain_name" ]; then
-        echo "Must specify domain name"
-        usage
+        usage "Must specify domain name"
     fi
 
     dn=$conf_domain_name.$g_conf_domain_suffix
@@ -586,7 +587,7 @@ else
     # mkdir directory
 
     if [ -d $cert_dir ]; then
-        echo "$cert_dir was existed"
+        d_msg_warn "$cert_dir was existed"
         exit 0
     fi
 
@@ -639,7 +640,6 @@ case $conf_cert_type in
         gen_gm $csr_config_file $opt_gencsr
         ;;
     *)
-        echo "Unknown certificate type: $conf_cert_type"
-        usage
+        usage "Unknown certificate type: $conf_cert_type"
         ;;
 esac
