@@ -20,6 +20,8 @@ conf_end=
 conf_enc_csr=
 conf_enc_key=
 
+conf_md=sha256
+
 cert_dir=
 date_options=
 g_clean_cert_dir=yes
@@ -34,15 +36,16 @@ function usage
 
     echo "Usage: certm-mkcert [OPTIONS] <domain_name>"
     echo "Options:"
-    echo "  -b, --begin <DATE>                      Begin date, default is now"
-    echo "  -d, --debug                             Enable debug mode"
-    echo "  -e, --end   <DATE>                      End date, default is 1095 days"
-    echo "  -g, --gm                                GM certificate (deprecated, use \"-t sm2\" instead)"
-    echo "  -h, --help                              Show help"
-    echo "  -k, --key <PRIVATE_KEY_FILE>            Private key file. If specified of CSR file(-r), will use this key file"
-    echo "  -r, --request <CSR_FILE>                CSR file. If specified, will make certificate from CSR file"
-    echo "  -s, --server                            Server certificate, default is client"
-    echo "  -t, --type  <rsa | ecdsa | sm2 | dsa>   Certificate Key type, default is 'rsa'"
+    echo "  -b, --begin <DATE>                              Begin date, default is now"
+    echo "  -d, --debug                                     Enable debug mode"
+    echo "  -e, --end   <DATE>                              End date, default is 1095 days"
+    echo "  -g, --gm                                        GM certificate (deprecated, use \"-t sm2\" instead)"
+    echo "  -h, --help                                      Show help"
+    echo "  -k, --key <PRIVATE_KEY_FILE>                    Private key file. If specified of CSR file(-r), will use this key file"
+    echo "  -m, --md <md5|sha1|sha256|sha384|sha512> Digest algorithm, default is sha256, only valid for no sm2 certificate"
+    echo "  -r, --request <CSR_FILE>                        CSR file. If specified, will make certificate from CSR file"
+    echo "  -s, --server                                    Server certificate, default is client"
+    echo "  -t, --type  <rsa | ecdsa | sm2 | dsa>           Certificate Key type, default is 'rsa'"
     echo ""
     echo "DATE: format is YYYYMMDDHHMMSSZ, such as 20201027120000Z"
     echo ""
@@ -150,6 +153,7 @@ function gen_rsa
                       $date_options \
                       -in $conf_csr \
                       -out $cert_dir/cert.pem \
+                      -md $conf_md \
                       -notext \
                       -passin pass:$conf_passwd \
                       $cert_opts
@@ -219,6 +223,7 @@ function gen_dsa
                       $date_options \
                       -in $conf_csr \
                       -out $cert_dir/cert.pem \
+                      -md $conf_md \
                       -notext \
                       -passin pass:$conf_passwd \
                       $cert_opts
@@ -287,6 +292,7 @@ function gen_ecdsa
                       $date_options \
                       -in $conf_csr \
                       -out $cert_dir/cert.pem \
+                      -md $conf_md \
                       -notext \
                       -passin pass:$conf_passwd \
                       $cert_opts
@@ -498,6 +504,19 @@ function pkey_get_ec_type
     fi
 }
 
+function check_md
+{
+    md=$1
+
+    case $md in
+        md5|sha1|sha256|sha384|sha512)
+            ;;
+        *)
+            usage "Unknown digest algorithm: $md"
+            ;;
+    esac
+}
+
 ####################### Main #######################
 
 trap exit_on_error SIGINT SIGTERM SIGQUIT
@@ -536,6 +555,10 @@ do
             conf_enc_key=$conf_key
             shift
             ;;
+        -m|--md)
+            conf_md=$2
+            shift
+            ;;
         -r|--request)
             conf_csr=`cd $( dirname $2 ); pwd`/$( basename $2 )
             conf_enc_csr=$conf_csr
@@ -565,6 +588,8 @@ do
     esac
     shift
 done
+
+check_md $conf_md
 
 if [ -n "$conf_csr" ]; then
     check_csr $conf_csr $conf_key \
