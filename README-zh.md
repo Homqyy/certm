@@ -2,6 +2,15 @@
 
 证书管理工具
 
+## 依赖
+
+```bash
+apt update \
+    && apt-get install cpanminus
+
+cpanm -i Test::More
+```
+
 ## 开发计划
 
 - [x] 支持ECDSA
@@ -13,6 +22,7 @@
 - [x] 用`subenv`作为变量替换工具
 - [ ] 用`json`作为配置文件的格式
 - [x] 支持生成DSA证书
+- [ ] 支持测试脚本
 
 ## 部署和使用
 
@@ -211,6 +221,8 @@ Options:
 - certm-lsclients
 - certm-lsservers
 - certm-lsca
+
+## 测试
 
 ## build.sh
 
