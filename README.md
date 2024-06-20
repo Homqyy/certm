@@ -12,6 +12,7 @@ Certificate Management Tool
 - [ ] Support certificate renewal
 - [x] Utilize `subenv` as a variable substitution tool
 - [x] Use `json` as the format of the configuration file
+- [ ] Support docker deployment
 
 ## Deployment and Usage
 

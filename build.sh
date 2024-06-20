@@ -14,9 +14,21 @@ g_openssl=
 g_debug=
 g_sh=bash
 
-################# Functions #################
+################# Pre-check #################
 
-git submodule init && git submodule update || (echo "Failed to init submodules"; exit 1)
+# whether git submodules was updated: tongsuo, tools-dev
+# if first char is '-', then it not updated
+status=`git submodule status | cut -c 1`
+for first_char in $status
+do
+    if [ "$first_char" == "-" ]; then
+        echo "Please update git submodules, type the following command:"
+        echo "  git submodule update --init --recursive"
+        exit 1
+    fi
+done
+
+################# Functions #################
 
 source $g_root_dir/tools-dev/base_for_bash.func
 source $g_config_file
@@ -127,17 +139,23 @@ function uninstall_certm
 function install_certm
 {
     env_file=$g_output_dir/.env
+    version=v1
 
     if [ -f $env_file ]; then
-        # whether is installed
-        grep -q "# certm install start: v1" $env_file && return 0
+        # extract version
+        old_version=`grep -o "# certm install start: [^ ]*" $env_file | cut -d ' ' -f 5`
+        # whether need to update: version > old_version
+        if [ $version -le $old_version ]; then
+            d_success_info "certm has been installed"
+            return 0
+        fi
 
         # backup
         cp $env_file $env_file.bak
     fi
 
     cat >> $env_file << EOF
-# certm install start: v1
+# certm install start: $version
 alias "certm-mkcert=$g_root_dir/src/tools/mkcert.sh"
 alias "certm-revoke=$g_root_dir/src/tools/revoke.sh"
 alias "certm-gencrl=$g_root_dir/src/tools/gencrl.sh"
@@ -176,7 +194,7 @@ export CERTM_LOG_FILE="$g_log_file"
 
 export CERTM_BIN_OPENSSL="$g_openssl"
 
-# certm install end: v1
+# certm install end: $version
 EOF
 
     d_success_info "Install certm"
